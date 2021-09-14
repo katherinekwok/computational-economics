@@ -1,4 +1,10 @@
-# This file contains the optimal growth model
+# Edited by Katherine Kwok
+# Date: Sept 14, 2021
+
+# This file contains the optimal growth model, including a stochastic state that
+# says whether we are in a good or bad state. The code defines parameters,
+# the Bellman operator, and arrays to store the results, then solves the dynamic
+# programming problem for the value function and policy function.
 
 #keyword-enabled structure to hold model primitives
 @with_kw struct Primitives
@@ -23,8 +29,8 @@ end
 #function for initializing model primitives and results
 function Initialize()
     prim = Primitives() #initialize primtiives
-    val_func = zeros(prim.nk, 2) #initial value function guess - 2D
-    pol_func = zeros(prim.nk, 2) #initial policy function guess - 2D
+    val_func = zeros(prim.nk, 2) #initial value function guess - 2D, for good state and bad state
+    pol_func = zeros(prim.nk, 2) #initial policy function guess - 2D, for good state and bad state
     res = Results(val_func, pol_func) #initialize results struct
     prim, res #return deliverables
 end

@@ -1,4 +1,11 @@
-# This file contains the optimal growth model
+# Edited by Katherine Kwok
+# Date: Sept 14, 2021
+
+# This file contains the optimal growth model, including a stochastic state that
+# says whether we are in a good or bad state. The code defines parameters,
+# the Bellman operator, and arrays to store the results, then solves the dynamic
+# programming problem in a parallelized manner for the value function and policy
+# function.
 
 #keyword-enabled structure to hold model primitives
 @everywhere @with_kw struct Primitives
@@ -17,7 +24,7 @@ end
 #structure that holds model results
 @everywhere mutable struct Results
     val_func::Array{Float64, 2} #value function - 2D, for good state and bad state
-    pol_func::Array{Float64, 2} #policy function
+    pol_func::Array{Float64, 2} #policy function - 2D, for good state and bad state
 end
 
 #function for initializing model primitives and results

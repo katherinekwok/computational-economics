@@ -1,4 +1,11 @@
-using Distributed, SharedArrays
+# Edited by Katherine Kwok
+# Date: Sept 14, 2021
+#
+# This code solves the stochastic economic growth model in parallel. This program
+# calls 02_growth_model_parallel.jl, which defines, initializes, and solves for
+# the equilibrium. Then, we plot the output value function and policy function.
+
+using Distributed, SharedArrays # load package for running julia in parallel
 @everywhere using Parameters, Plots
 include("02_Growth_model.jl") #import the functions that solve our growth model
 
@@ -7,7 +14,10 @@ time = @elapsed Solve_model(prim, res) #solve the model!
 @unpack val_func, pol_func = res
 @unpack k_grid = prim
 
-##############Make plots
+# ------------ #
+# Make plots
+# ------------ #
+
 #value function
 Plots.plot(k_grid, val_func[:, 1], label = "Good State", title="Value Function")
 Plots.plot!(k_grid, val_func[:, 2], label = "Bad State", title="Value Function")
@@ -26,4 +36,5 @@ Plots.plot!(k_grid, pol_func_δ_bad, label = "Bad State",title="Policy Functions
 Plots.savefig("02_Policy_Functions_Changes.png")
 
 println("Completed parallelized program in $time seconds")
+
 ################################

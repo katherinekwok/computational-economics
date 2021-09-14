@@ -1,12 +1,22 @@
-using Parameters, Plots
-include("02_Growth_model.jl") #import the functions that solve our growth model
+# Edited by Katherine Kwok
+# Date: Sept 14, 2021
+#
+# This code solves the stochastic economic growth model. This program
+# calls 02_growth_model.jl, which defines, initializes, and solves for
+# the equilibrium. Then, we plot the output value function and policy function.
 
-prim, res = Initialize() #initialize primitive and results structs
-time = @elapsed Solve_model(prim, res) #solve the model!
+using Parameters, Plots
+include("02_Growth_model.jl") # import the functions that solve our growth model
+
+prim, res = Initialize() # initialize primitive and results structs
+time = @elapsed Solve_model(prim, res) # solve the model!
 @unpack val_func, pol_func = res
 @unpack k_grid = prim
 
-##############Make plots
+#----------------#
+# Make plots
+#----------------#
+
 #value function
 Plots.plot(k_grid, val_func[:, 1], label = "Good State", title="Value Function")
 Plots.plot!(k_grid, val_func[:, 2], label = "Bad State", title="Value Function")
