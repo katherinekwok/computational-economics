@@ -120,7 +120,7 @@ write(*,*) "Total elapsed time = ", real(end - beginning) / real(rate)," seconds
 write(*,*) "******************************************************"
 
 ! Write results
-! call coda()
+call coda()
 
 write(*,*) ""
 write(*,*) "**************************************"
@@ -336,13 +336,21 @@ use params_grid
 implicit none
 
 write(*,*) ""
-write (*,*) "Writing PFs to DAT file"
-open(unit = 2, file = 'pfs_neogrowth.dat', status = 'replace', action = 'write', iostat = i_stat)
+write (*,*) "Writing PFs to DAT file for Good State"
+open(unit = 2, file = 'pfs_neogrowth_good.dat', status = 'replace', action = 'write', iostat = i_stat)
 200 format(f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
 
 do i_k = 1,n_k
      write(2,200) grid_k(i_k), pf_c(i_k, 1), pf_k(i_k, 1), pf_v(i_k, 1)    ! good state
-		 write(2,200) grid_k(i_k), pf_c(i_k, 2), pf_k(i_k, 2), pf_v(i_k, 2)		! bad state
+end do
+
+write(*,*) ""
+write (*,*) "Writing PFs to DAT file for Bad State"
+open(unit = 2, file = 'pfs_neogrowth_bad.dat', status = 'replace', action = 'write', iostat = i_stat)
+300 format(f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x,f25.15,2x)
+
+do i_k = 1,n_k
+	write(2,300) grid_k(i_k), pf_c(i_k, 2), pf_k(i_k, 2), pf_v(i_k, 2)		! bad state
 end do
 
 return
