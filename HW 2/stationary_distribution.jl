@@ -49,7 +49,7 @@ end
 
 # T_star_iterate: This function iterates the T star operator until we converge
 # at the stationary distribution
-function T_star_iterate(prim::Primitives, res::Results, sup_norm::Float64 = 100.0)
+function T_star_iterate(prim::Primitives, res::Results, q::Float64, sup_norm::Float64 = 100.0)
     n = 0              # counter for iteration
     tol = 1e-5         # tolerance value
     max_iter = 1000    # limit for number of iterations

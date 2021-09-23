@@ -18,6 +18,7 @@
     ns::Int64 = 2                                       # number of employment states
     s::Array{Float64, 1} = [1, 0.5]                     # employment state (e, u)
     t_matrix::Array{Float64, 2} = [0.97 0.03; 0.05 0.5] # transition matrix for employment state
+
 end
 
 # Results: structure that holds model results
@@ -27,14 +28,25 @@ mutable struct Results
     μ::Array{Float64}            # stationary wealth distribution
 end
 
+# Loop: structure that holds model loop parameters and variables
+mutable struct Loop
+    tol::Float64                  # tolerance for main loop
+    net_asset_supply::Float64     # initialize net asset supply value (random big number to satisfy while loop)
+    q_min::Float64                # lower bound for q
+    q_max::Float64                # upper bound for q
+    q::Float64                    # q value
+    converged::Float64            # converged indicator
+end
+
 # Initialize: function for initializing model primitives and results structs
 function Initialize()
     prim = Primitives()                             # initialize primtiives
     val_func = zeros(prim.na, 2)                    # initial value function guess - 2D
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
-    μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)    # initial wealth distribution - uniform distribution sum to 1
+    μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
-    prim, res                                       # return deliverables
+    loop = Loop(0.00001, 100.0, 0, 2.0, 0.0, 0)   # initialize loop variables
+    prim, res, loop                                       # return deliverables
 end
 
 # Bellman Operator

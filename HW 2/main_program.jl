@@ -14,28 +14,56 @@ include("value_function_iteration.jl") # import the functions that solves value 
 include("stationary_distribution.jl")  # import the functions that solves for stationary distribution
 
 
-q = 0.9943
-
 # ----------------------------------------------- #
 #  (0) initialize things for algorithm
 # ----------------------------------------------- #
 
-prim, res = Initialize()      # initialize primitives and results struct
+prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
-# ----------------------------------------------- #
-#  (1) value function iteration
-# ----------------------------------------------- #
+while loop.converged == 0
 
-@time V_iterate(prim, res, q)     # run value function iteration
-@unpack val_func, pol_func = res  # get value function and policy function
-@unpack a_grid = prim                 # get asset grid
+      loop.q = (loop.q_max + loop.q_min)/2 # use bisection method to update q
 
-# ----------------------------------------------- #
-#  (2) solve for the stationary distribution
-# ----------------------------------------------- #
+      # ----------------------------------------------- #
+      #  (1) value function iteration
+      # ----------------------------------------------- #
 
-@time T_star_iterate(prim, res)
+      @time V_iterate(prim, res, loop.q)
 
-# ----------------------------------------------- #
-# (3) check asset market clearing 
-# ----------------------------------------------- #
+      # ----------------------------------------------- #
+      #  (2) solve for the stationary distribution
+      # ----------------------------------------------- #
+
+      @time T_star_iterate(prim, res, loop.q)
+
+      # ----------------------------------------------- #
+      # (3) check asset market clearing
+      # ----------------------------------------------- #
+      @unpack pol_func, μ = res    # unpack policy function and stationary distribution
+      @unpack s, a_grid, na = prim # unpack primitives
+      loop.net_asset_supply = 0.0  # reset net supply variable
+
+      for (s_index, s) in enumerate(s)                  # loop through current employment states
+            for (a_index, a) in enumerate(a_grid)       # loop through current asset grid
+                  μ_index = a_index + na*(s_index - 1)                         # get mapping to μ index from s, a
+                  loop.net_asset_supply += pol_func[a_index, s_index] * μ[μ_index]  # sum to net asset supply
+            end
+      end
+
+      if abs(loop.net_asset_supply) < loop.tol    # check if converged
+            loop.converged = 1
+            println("---------------------------------------------------------------")
+            println("          Main loop converged at bond price: ", loop.q)
+            println("---------------------------------------------------------------")
+      elseif loop.net_asset_supply > 0       # if agents are saving too much
+            loop.q_min = loop.q          # we raise bond price, leading to lower interest rate
+            println("---------------------------------------------------------------")
+            println("          Agents saving too much; raise bond price")
+            println("---------------------------------------------------------------")
+      elseif loop.net_asset_supply < 0   # if agents are saving too little
+            loop.q_max = loop.q          # we lower bond price, leading to higher interest rate
+            println("---------------------------------------------------------------")
+            println("          Agents saving too little; lower bond price")
+            println("---------------------------------------------------------------")
+      end
+end
