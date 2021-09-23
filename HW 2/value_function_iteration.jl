@@ -32,7 +32,7 @@ function Initialize()
     prim = Primitives()                             # initialize primtiives
     val_func = zeros(prim.na, 2)                    # initial value function guess - 2D
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
-    μ = ones(prim.na, prim.ns)/(prim.na*prim.ns)    # initial wealth distribution - uniform distribution sum to 1
+    μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)    # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
     prim, res                                       # return deliverables
 end
@@ -74,17 +74,17 @@ end
 # Value function iteration
 function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
     n = 0 # counter for iteration
-    println("---------------------------------------------------")
-    println("Starting value function iteration for bond price ", q)
-    println("---------------------------------------------------")
+    println("---------------------------------------------------------------")
+    println("      Starting value function iteration for bond price ", q)
+    println("---------------------------------------------------------------")
     while err>tol  # keep iterating until we error less than tolerance value
         v_next = Bellman(prim, res, q)                                       # compute next value
-        err = abs.(maximum(v_next.-res.val_func))/abs(v_next[prim.na, 1]) # reset error level
-        res.val_func = v_next                                             # update value function
+        err = abs.(maximum(v_next.-res.val_func))/abs(v_next[prim.na, 1])    # reset error level
+        res.val_func = v_next                                                # update value function
         n += 1
     end
-    println("Value function converged in ", n, " iterations.")
-    println("---------------------------------------------------")
+    println("       Value function converged in ", n, " iterations.")
+    println("---------------------------------------------------------------")
 end
 
 ##############################################################################

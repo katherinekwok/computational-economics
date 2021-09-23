@@ -31,6 +31,11 @@ prim, res = Initialize()      # initialize primitives and results struct
 @unpack a_grid = prim                 # get asset grid
 
 # ----------------------------------------------- #
-#  (2) solving for the stationary distribution
-# ---------------------------------------------- ##
-a = Make_big_trans_matrix(prim, res)
+#  (2) solve for the stationary distribution
+# ----------------------------------------------- #
+
+@time T_star_iterate(prim, res)
+
+# ----------------------------------------------- #
+# (3) check asset market clearing 
+# ----------------------------------------------- #

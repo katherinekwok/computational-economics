@@ -37,3 +37,35 @@ function Make_big_trans_matrix(prim::Primitives, res::Results)
     big_trans_mat # return the big transition matrix!
 
 end
+
+# T_star_operator: This function defines the T star operator, which basically
+# maps individuals from μ today to μ tomorrow, conditional on a' = g(a, s; q)
+function T_star_operator(big_trans_mat, μ)
+
+    μ_tomorrow = big_trans_mat' * μ   # multiply the indicator, markov transition, and current μ
+    μ_tomorrow                        # return μ tomorrow
+
+end
+
+# T_star_iterate: This function iterates the T star operator until we converge
+# at the stationary distribution
+function T_star_iterate(prim::Primitives, res::Results, sup_norm::Float64 = 100.0)
+    n = 0              # counter for iteration
+    tol = 1e-5         # tolerance value
+    max_iter = 1000    # limit for number of iterations
+
+    big_trans_mat = Make_big_trans_matrix(prim, res) # make big transition matrix from today to tomorrow's state
+
+    println("---------------------------------------------------------------")
+    println("        Starting T star iteration for bond price ", q)
+    println("---------------------------------------------------------------")
+
+    while sup_norm > tol && n < max_iter     # loop until converged
+        μ_new = T_star_operator(big_trans_mat, res.μ)       # apply T star operator
+        sup_norm = sum(abs.(μ_new - res.μ))   # calculate the sup norm
+        res.μ = μ_new                        # update μ
+        n += 1                               # update iteration counter
+    end
+    println("          T star converged in ", n, " iterations.")
+    println("---------------------------------------------------------------")
+end
