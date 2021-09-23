@@ -15,29 +15,30 @@
     na::Int64 = 701         # number of asset grid points
     a_grid::Array{Float64,1} = collect(range(a_min, length = na, stop = a_max)) # asset grid
 
+    ns::Int64 = 2                                       # number of employment states
     s::Array{Float64, 1} = [1, 0.5]                     # employment state (e, u)
     t_matrix::Array{Float64, 2} = [0.97 0.03; 0.05 0.5] # transition matrix for employment state
 end
 
 # Results: structure that holds model results
-mutable struct Results_VFT
-    # value function - 2D, for employed and unemployed state
-    val_func::Array{Float64, 2}
-    # policy function - 2D, for employed and unemployed state
-    pol_func::Array{Float64, 2}
+mutable struct Results
+    val_func::Array{Float64, 2}  # value function - 2D, for employed and unemployed state
+    pol_func::Array{Float64, 2}  # policy function - 2D, for employed and unemployed state
+    μ::Array{Float64}            # stationary wealth distribution
 end
 
-# Initialize: function for initializing model primitives and results structs for VFT
-function Initialize_VFT()
-    prim = Primitives()               # initialize primtiives
-    val_func = zeros(prim.na, 2)      # initial value function guess - 2D
-    pol_func = zeros(prim.na, 2)      # initial policy function guess - 2D
-    res = Results_VFT(val_func, pol_func) # initialize results struct
-    prim, res                         # return deliverables
+# Initialize: function for initializing model primitives and results structs
+function Initialize()
+    prim = Primitives()                             # initialize primtiives
+    val_func = zeros(prim.na, 2)                    # initial value function guess - 2D
+    pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
+    μ = ones(prim.na, prim.ns)/(prim.na*prim.ns)    # initial wealth distribution - uniform distribution sum to 1
+    res = Results(val_func, pol_func, μ)            # initialize results struct
+    prim, res                                       # return deliverables
 end
 
 # Bellman Operator
-function Bellman(prim::Primitives, res::Results_VFT, q::Float64)
+function Bellman(prim::Primitives, res::Results, q::Float64)
     @unpack val_func = res                       # unpack value function
     @unpack a_grid, β, α, na, s, t_matrix = prim # unpack model primitives
     v_next = zeros(na, 2)                       # next guess of value function
@@ -71,9 +72,11 @@ function Bellman(prim::Primitives, res::Results_VFT, q::Float64)
 end
 
 # Value function iteration
-function V_iterate(prim::Primitives, res::Results_VFT, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
+function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
     n = 0 # counter for iteration
-
+    println("---------------------------------------------------")
+    println("Starting value function iteration for bond price ", q)
+    println("---------------------------------------------------")
     while err>tol  # keep iterating until we error less than tolerance value
         v_next = Bellman(prim, res, q)                                       # compute next value
         err = abs.(maximum(v_next.-res.val_func))/abs(v_next[prim.na, 1]) # reset error level
@@ -81,6 +84,7 @@ function V_iterate(prim::Primitives, res::Results_VFT, q::Float64, tol::Float64 
         n += 1
     end
     println("Value function converged in ", n, " iterations.")
+    println("---------------------------------------------------")
 end
 
 ##############################################################################

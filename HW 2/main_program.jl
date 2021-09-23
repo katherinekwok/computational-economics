@@ -20,16 +20,17 @@ q = 0.9943
 #  (0) initialize things for algorithm
 # ----------------------------------------------- #
 
-prim, res_vft = Initialize_VFT()      # initialize primitives for entire program and results struct for VFT (value function iteration)
+prim, res = Initialize()      # initialize primitives and results struct
 
 # ----------------------------------------------- #
 #  (1) value function iteration
 # ----------------------------------------------- #
 
-@time V_iterate(prim, res_vft, q)     # run value function iteration
-@unpack val_func, pol_func = res_vft  # get value function and policy function
+@time V_iterate(prim, res, q)     # run value function iteration
+@unpack val_func, pol_func = res  # get value function and policy function
 @unpack a_grid = prim                 # get asset grid
 
 # ----------------------------------------------- #
 #  (2) solving for the stationary distribution
 # ---------------------------------------------- ##
+a = Make_big_trans_matrix(prim, res)
