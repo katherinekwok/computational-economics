@@ -1,7 +1,7 @@
 # Author: Katherine Kwok
 # Date: Sept 22, 2021
 
-# This file contains the Value Function Iteration code. This program iteratively
+# This file contains the Value Function Iteration (VFT) code. This program iteratively
 # calls the Bellman Function to solve the Household problem, in order to find
 # the value maximizing policy function.
 
@@ -20,24 +20,24 @@
 end
 
 # Results: structure that holds model results
-mutable struct Results
+mutable struct Results_VFT
     # value function - 2D, for employed and unemployed state
     val_func::Array{Float64, 2}
     # policy function - 2D, for employed and unemployed state
     pol_func::Array{Float64, 2}
 end
 
-# Initialize: function for initializing model primitives and results
-function Initialize()
+# Initialize: function for initializing model primitives and results structs for VFT
+function Initialize_VFT()
     prim = Primitives()               # initialize primtiives
     val_func = zeros(prim.na, 2)      # initial value function guess - 2D
     pol_func = zeros(prim.na, 2)      # initial policy function guess - 2D
-    res = Results(val_func, pol_func) # initialize results struct
+    res = Results_VFT(val_func, pol_func) # initialize results struct
     prim, res                         # return deliverables
 end
 
 # Bellman Operator
-function Bellman(prim::Primitives, res::Results, q::Float64)
+function Bellman(prim::Primitives, res::Results_VFT, q::Float64)
     @unpack val_func = res                       # unpack value function
     @unpack a_grid, β, α, na, s, t_matrix = prim # unpack model primitives
     v_next = zeros(na, 2)                       # next guess of value function
@@ -71,7 +71,7 @@ function Bellman(prim::Primitives, res::Results, q::Float64)
 end
 
 # Value function iteration
-function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
+function V_iterate(prim::Primitives, res::Results_VFT, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
     n = 0 # counter for iteration
 
     while err>tol  # keep iterating until we error less than tolerance value
