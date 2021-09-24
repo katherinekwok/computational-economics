@@ -32,11 +32,11 @@ end
 mutable struct Loop
     tol::Float64                  # tolerance for main loop
     net_asset_supply::Float64     # initialize net asset supply value (random big number to satisfy while loop)
-    q_min::Float64                # lower bound for q
-    q_max::Float64                # upper bound for q
+    q_min::Float64                # lower bound for q for bisection method
+    q_max::Float64                # upper bound for q for bisection method
     q::Float64                    # q value
     converged::Float64            # converged indicator
-    adjust_step::Float64          # adjustment step
+    adjust_step::Float64          # adjustment step for adjustment method
 end
 
 # Initialize: function for initializing model primitives and results structs
@@ -46,7 +46,7 @@ function Initialize()
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
     μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
-    loop = Loop(1e-5, 100.0, 0.0, 0.9, 1.0, 0, 0.0)   # initialize loop variables
+    loop = Loop(1e-5, 100.0, 0.0, 0.9, 0.9, 0, 0.0) # initialize loop variables
     prim, res, loop                                 # return deliverables
 end
 
@@ -54,7 +54,7 @@ end
 function Bellman(prim::Primitives, res::Results, q::Float64)
     @unpack val_func = res                       # unpack value function
     @unpack a_grid, β, α, na, s, t_matrix = prim # unpack model primitives
-    v_next = zeros(na, 2)                       # next guess of value function
+    v_next = zeros(na, 2)                        # next guess of value function
     #v_next = SharedArray{Float64}(na, 2)         # next guess of value function (parallelized version)
 
     for (s_index, s_val) in enumerate(s)         # loop through possible employment states
@@ -66,7 +66,7 @@ function Bellman(prim::Primitives, res::Results, q::Float64)
             candidate_max = -Inf                 # initialize lowest candidate max
 
             # loop over possible selections of a', exploiting monotonicity of policy function
-            @sync @distributed for ap_index in choice_lower:na
+            for ap_index in choice_lower:na
                 c = s_val + a - q * a_grid[ap_index]                 # consumption given a' selection
                 if c > 0                                             # check for positivity
                     utility = (c^(1-α) - 1)/(1 - α)                   # utility of consumption
