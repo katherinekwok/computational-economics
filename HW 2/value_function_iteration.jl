@@ -36,6 +36,7 @@ mutable struct Loop
     q_max::Float64                # upper bound for q
     q::Float64                    # q value
     converged::Float64            # converged indicator
+    adjust_step::Float64          # adjustment step
 end
 
 # Initialize: function for initializing model primitives and results structs
@@ -45,7 +46,7 @@ function Initialize()
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
     μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
-    loop = Loop(0.00001, 100.0, 0, 1.0, 0.0, 0)     # initialize loop variables
+    loop = Loop(1e-9, 100.0, 0, 1.0, 1.0, 0, 0.0)      # initialize loop variables
     prim, res, loop                                       # return deliverables
 end
 

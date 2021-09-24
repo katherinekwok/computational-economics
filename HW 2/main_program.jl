@@ -23,6 +23,7 @@ prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 while loop.converged == 0
 
       loop.q = (loop.q_max + loop.q_min)/2 # use bisection method to update q
+      #loop.adjust_step = 0.01 * loop.q
 
       # ----------------------------------------------- #
       #  (1) value function iteration
@@ -56,12 +57,16 @@ while loop.converged == 0
             println("          Main loop converged at bond price: ", loop.q)
             println("---------------------------------------------------------------")
       elseif loop.net_asset_supply > 0       # if agents are saving too much
-            loop.q_min = loop.q          # we raise bond price, leading to lower interest rate
+                                             # we raise bond price, leading to lower interest rate
+            loop.q_min = loop.q             # for bisection method
+            #loop.q = loop.q + loop.adjust_step
             println("---------------------------------------------------------------")
             println("          Agents saving too much; raise bond price")
             println("---------------------------------------------------------------")
       elseif loop.net_asset_supply < 0   # if agents are saving too little
-            loop.q_max = loop.q          # we lower bond price, leading to higher interest rate
+                                         # we lower bond price, leading to higher interest rate
+            loop.q_max = loop.q         # for bisection method
+            #loop.q = loop.q - loop.adjust_step
             println("---------------------------------------------------------------")
             println("          Agents saving too little; lower bond price")
             println("---------------------------------------------------------------")
