@@ -7,6 +7,7 @@
 #    (1) value function iteration
 #    (2) solving for the stationary distribution
 #    (3) finding the asset market clearing bond price
+#    (4) make plots
 
 using Distributed, SharedArrays # load package for running julia in parallel
 using Parameters, Plots
@@ -72,3 +73,7 @@ while loop.converged == 0
             println("---------------------------------------------------------------")
       end
 end
+
+# ----------------------------------------------- #
+#  (4) make plots
+# ----------------------------------------------- #
