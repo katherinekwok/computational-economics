@@ -23,8 +23,8 @@ prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
 while loop.converged == 0
 
-      loop.q = (loop.q_max + loop.q_min)/2 # use bisection method to update q
-      #loop.adjust_step = 0.01 * loop.q
+      #loop.q = (loop.q_max + loop.q_min)/2 # use bisection method to update q
+      loop.adjust_step = 0.01 * loop.q
 
       # ----------------------------------------------- #
       #  (1) value function iteration
@@ -59,15 +59,15 @@ while loop.converged == 0
             println("---------------------------------------------------------------")
       elseif loop.net_asset_supply > 0       # if agents are saving too much
                                              # we raise bond price, leading to lower interest rate
-            loop.q_min = loop.q             # for bisection method
-            #loop.q = loop.q + loop.adjust_step
+            #loop.q_min = loop.q              # for bisection method
+            loop.q = loop.q + loop.adjust_step
             println("---------------------------------------------------------------")
             println("          Agents saving too much; raise bond price")
             println("---------------------------------------------------------------")
       elseif loop.net_asset_supply < 0   # if agents are saving too little
                                          # we lower bond price, leading to higher interest rate
-            loop.q_max = loop.q         # for bisection method
-            #loop.q = loop.q - loop.adjust_step
+            #loop.q_max = loop.q         # for bisection method
+            loop.q = loop.q - loop.adjust_step
             println("---------------------------------------------------------------")
             println("          Agents saving too little; lower bond price")
             println("---------------------------------------------------------------")
@@ -77,3 +77,18 @@ end
 # ----------------------------------------------- #
 #  (4) make plots
 # ----------------------------------------------- #
+@unpack pol_func, μ = res
+@unpack a_grid, s = prim
+
+# policy functions
+Plots.plot(a_grid, pol_func[:, 1], label = "Employed")
+Plots.plot!(a_grid, pol_func[:, 2], label = "Unemployed", title="Policy Functions")
+Plots.plot!(a_grid, a_grid, label = "45 Degree Line")
+Plots.savefig("output/Policy_Functions.png")
+
+# stationary distributions
+wealth_employed = a_grid .+ s[1]
+wealth_unemployed = a_grid .+ s[2]
+Plots.plot(wealth_employed, μ[1:701, :], label = "Employed")
+Plots.plot!(wealth_unemployed, μ[702:1402, :], label = "Unemployed", title="Cross Section Distribution of Wealth")
+Plots.savefig("output/Cross_Section_Distribution.png")

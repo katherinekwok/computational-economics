@@ -46,8 +46,8 @@ function Initialize()
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
     μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
-    loop = Loop(1e-9, 100.0, 0, 1.0, 1.0, 0, 0.0)      # initialize loop variables
-    prim, res, loop                                       # return deliverables
+    loop = Loop(1e-5, 100.0, 0.0, 0.9, 1.0, 0, 0.0)   # initialize loop variables
+    prim, res, loop                                 # return deliverables
 end
 
 # Bellman Operator
@@ -67,9 +67,10 @@ function Bellman(prim::Primitives, res::Results, q::Float64)
 
             # loop over possible selections of a', exploiting monotonicity of policy function
             @sync @distributed for ap_index in choice_lower:na
-                c = s_val + a - q*a_grid[ap_index]                   # consumption given a' selection
+                c = s_val + a - q * a_grid[ap_index]                 # consumption given a' selection
                 if c > 0                                             # check for positivity
-                    val = log(c) + β*val_func[ap_index, :]' * s_prob # compute value
+                    utility = (c^(1-α) - 1)/(1 - α)                   # utility of consumption
+                    val = utility + β * s_prob' * val_func[ap_index, :] # compute value
 
                     if val > candidate_max                                # check if new value exceeds current max
                         candidate_max = val                               # if so, update max value
