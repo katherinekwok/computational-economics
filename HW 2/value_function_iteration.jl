@@ -45,7 +45,7 @@ function Initialize()
     pol_func = zeros(prim.na, 2)                    # initial policy function guess - 2D
     μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
-    loop = Loop(0.00001, 100.0, 0, 2.0, 0.0, 0)   # initialize loop variables
+    loop = Loop(0.00001, 100.0, 0, 1.0, 0.0, 0)     # initialize loop variables
     prim, res, loop                                       # return deliverables
 end
 
