@@ -40,7 +40,7 @@ end
 function Bellman(prim::Primitives,res::Results)
     @unpack val_func = res #unpack value function
     @unpack k_grid, β, δ, α, nk, z, θ, t_matrix = prim #unpack model primitives
-    v_next = SharedArray{Float64, 2}(nk) #next guess of value function to fill
+    v_next = SharedArray{Float64}(nk, 2) #next guess of value function to fill 
 
     for (z_index, z_val) in enumerate(z)
         z_prob = t_matrix[z_index, :] # get transition probability
