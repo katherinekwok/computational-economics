@@ -11,8 +11,9 @@
 
 using Distributed, SharedArrays # load package for running julia in parallel
 using Parameters, Plots
-include("value_function_iteration_v2.jl") # import the functions that solves value function iteration
+include("value_function_iteration.jl") # import the functions that solves value function iteration
 include("stationary_distribution.jl")     # import the functions that solves for stationary distribution
+
 
 
 # ----------------------------------------------- #
@@ -78,12 +79,26 @@ end
 #  (4) make plots
 # ----------------------------------------------- #
 @unpack pol_func, μ = res
-@unpack a_grid, s = prim
+@unpack a_grid, s, na = prim
 
-# policy functions
+# (0) find first point where the the decision rule equals a_grid value, i.e. a_bar
+local match_index = 1
+for i in 2:na
+      if a_grid[i-1] < pol_func[i-1, 1] && a_grid[i] == pol_func[i, 1]
+            match_index = i
+      end
+end
+a_bar = a_grid[match_index] # found matched a_bar
+
+# (1) policy functions
 Plots.plot(a_grid, pol_func[:, 1], label = "Employed")
 Plots.plot!(a_grid, pol_func[:, 2], label = "Unemployed", title="Policy Functions")
-Plots.plot!(a_grid, a_grid, label = "45 Degree Line")
+Plots.plot!(a_grid, a_grid, label = "45 Degree Line", linestyle = :dash)
+Plots.vline!([a_bar], label = "ā", legend = :bottomright)
+xticks!(-2:1:3)
+yticks!(-2:1:3)
+xlims!(-2, 3)
+ylims!(-2, 3)
 Plots.savefig("output/Policy_Functions.png")
 
 
