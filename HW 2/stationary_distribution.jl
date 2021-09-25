@@ -57,9 +57,9 @@ function T_star_iterate(prim::Primitives, res::Results, q::Float64, err::Float64
 
     big_trans_mat = Make_big_trans_matrix(prim, res) # make big transition matrix from today to tomorrow's state
 
-    println("---------------------------------------------------------------")
-    println("        Starting T star iteration for bond price ", q)
-    println("---------------------------------------------------------------")
+    println("-----------------------------------------------------------------------")
+    @printf "        Starting T star iteration for bond price %.6f \n" q
+    println("-----------------------------------------------------------------------")
 
     while converged == 0 && n < max_iter                       # loop until converged
         μ_new = T_star_operator(big_trans_mat, res.μ)          # apply T star operator
@@ -72,5 +72,38 @@ function T_star_iterate(prim::Primitives, res::Results, q::Float64, err::Float64
         n += 1                               # update iteration counter
     end
     println("          T star converged in ", n, " iterations.")
-    println("---------------------------------------------------------------")
+    println("-----------------------------------------------------------------------")
+end
+
+
+# Check_asset_clearing: This function checks for the asset market clearing condition
+# for the main loop that searches for the correct q (bond price). This loops
+# over the value function iteration and stationary distribution solving algorithm.
+function Check_asset_clearing(prim::Primitives, res::Results, loop::Loop)
+    @unpack pol_func, μ = res    # unpack policy function and stationary distribution
+    @unpack s, a_grid, na, β = prim # unpack primitives
+    loop.net_asset_supply = 0.0  # reset net supply variable
+
+    loop.net_asset_supply = sum(res.μ .* vcat(a_grid, a_grid)) # calculate net asset supply
+
+    if abs(loop.net_asset_supply) < loop.tol    # check if converged
+        loop.converged = 1
+        println("-----------------------------------------------------------------------")
+        @printf "          Main loop converged at bond price: %.6f \n" loop.q
+        println("-----------------------------------------------------------------------")
+    elseif loop.net_asset_supply > 0       # if agents are saving too much
+                                         # we raise bond price, leading to lower interest rate
+        q_hat = loop.q + (1 - loop.q)/2* abs(loop.net_asset_supply)
+        println("-----------------------------------------------------------------------")
+        @printf "Agents saving too much; raise bond price from %.6f to %.6f \n" loop.q q_hat
+        println("-----------------------------------------------------------------------")
+        loop.q = q_hat
+    elseif loop.net_asset_supply < 0   # if agents are saving too little
+                                     # we lower bond price, leading to higher interest rate
+        q_hat = loop.q + (prim.β - loop.q)/2* abs(loop.net_asset_supply)
+        println("-----------------------------------------------------------------------")
+        @printf "Agents saving too little; drop bond price from %.6f to %.6f \n" loop.q q_hat
+        println("-----------------------------------------------------------------------")
+        loop.q = q_hat
+    end
 end

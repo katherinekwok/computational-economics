@@ -28,7 +28,9 @@ mutable struct Results
     μ::Array{Float64}            # stationary wealth distribution
 end
 
-# Loop: structure that holds model loop parameters and variables
+# Loop: structure that holds main q loop parameters and variables (q is the bond
+# price) This loop encompasses the smaller value function iteration and stationary
+# solving algorithm.
 mutable struct Loop
     tol::Float64                  # tolerance for main loop
     net_asset_supply::Float64     # initialize net asset supply value (random big number to satisfy while loop)
@@ -45,16 +47,17 @@ function Initialize()
     μ = ones(prim.na*prim.ns)/(prim.na*prim.ns)     # initial wealth distribution - uniform distribution sum to 1
     res = Results(val_func, pol_func, μ)            # initialize results struct
     q_0 = (prim.β + 1)/2                            # assume 1 > q > β, so start at mid point
-    loop = Loop(1e-4, 100.0, q_0, 0, 0.0)       # initialize loop variables
+    tol_q = 1e-3                                    # tolerance for main loop
+    loop = Loop(tol_q, 100.0, q_0, 0, 0.0)          # initialize loop variables
     prim, res, loop                                 # return deliverables
 end
 
-# Bellman Operator
+# Bellman: function encoding the Bellman Function, which is called repeatedly
+# in the V_iterate function until convergence.
 function Bellman(prim::Primitives, res::Results, q::Float64)
     @unpack val_func = res                       # unpack value function
     @unpack a_grid, β, α, na, s, t_matrix, ns = prim # unpack model primitives
     v_next = zeros(na, ns)                        # next guess of value function
-    a_next = zeros(na, ns)                        # next guess of policy function
     #v_next = SharedArray{Float64}(na, 2)         # next guess of value function (parallelized version)
 
     for (s_index, s_val) in enumerate(s)         # loop through possible employment states
@@ -67,15 +70,15 @@ function Bellman(prim::Primitives, res::Results, q::Float64)
 
             # loop over possible selections of a', exploiting monotonicity of policy function
             for ap_index in choice_lower:na
-                c = s_val + a - q * a_grid[ap_index]                  # consumption given a' selection
+                c = s_val + a - q * a_grid[ap_index]                      # consumption given a' selection
 
-                if c > 0                                             # check for positivity
-                    utility = (c^(1-α) - 1)/(1 - α)                   # utility of consumption
-                    val = utility + β * s_prob' * val_func[ap_index, :] # compute value
+                if c > 0                                                  # check for positivity of c
+                    utility = (c^(1-α) - 1)/(1 - α)                       # utility of c
+                    val = utility + β * s_prob' * val_func[ap_index, :]   # compute value
 
                     if val > candidate_max                                # check if new value exceeds current max
                         candidate_max = val                               # if so, update max value
-                        a_next[a_index, s_index] = a_grid[ap_index]       # update policy function for current state and asset
+                        res.pol_func[a_index, s_index] = a_grid[ap_index] # update policy function for current state and asset
                         choice_lower = ap_index                           # update lowest possible choice
                     end
                 end
@@ -83,36 +86,33 @@ function Bellman(prim::Primitives, res::Results, q::Float64)
             v_next[a_index, s_index] = candidate_max # update value function
         end
     end
-    v_next, a_next# return next guess of value function
+    v_next # return next guess of value function
 end
 
-# Value function iteration
-function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-4, err::Float64 = 100.0)
-    n = 0 # counter for iteration
+# V_iterate: is the value function iteration loop, which calls the Bellman
+# function repeatedly until we reach convergence.
+function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-5, err::Float64 = 100.0)
+    n = 0         # counter for iteration
     converged = 0 # indicator for convergence
 
-    println("---------------------------------------------------------------")
-    println("      Starting value function iteration for bond price ", q)
-    println("---------------------------------------------------------------")
+    println("-----------------------------------------------------------------------")
+    @printf "      Starting value function iteration for bond price  %.6f \n" q
+    println("-----------------------------------------------------------------------")
     while converged == 0  # keep iterating until we error less than tolerance value
-        v_next, a_next = Bellman(prim, res, q)
-        err = abs.(maximum(v_next.-res.val_func))/abs(maximum(v_next))
 
-        if err < tol
-            converged = 1
+        v_next = Bellman(prim, res, q)                                 # call Bellman
+        err = abs.(maximum(v_next.-res.val_func))/abs(maximum(v_next)) # check for error
+
+        if err < tol          # if error less than tolerance
+            converged = 1     # we have converged
         end
-        #if mod(n, 100) == 0
-        #    println("Iteration = ", n)
-        #    println("Max Difference = ", err)
-        #end
-        res.val_func = v_next
-        res.pol_func = a_next
-        n += 1
+        res.val_func = v_next # update val func
+        n += 1                # update loop counter
 
     end
-    println("---------------------------------------------------------------")
+    println("-----------------------------------------------------------------------")
     println("       Value function converged in ", n, " iterations.")
-    println("---------------------------------------------------------------")
+    println("-----------------------------------------------------------------------")
 end
 
 ##############################################################################

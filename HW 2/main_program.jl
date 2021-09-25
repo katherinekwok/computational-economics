@@ -12,47 +12,15 @@
 using Distributed, SharedArrays # load package for running julia in parallel
 using Parameters, Plots
 include("value_function_iteration.jl") # import the functions that solves value function iteration
-include("stationary_distribution.jl")     # import the functions that solves for stationary distribution
+include("stationary_distribution.jl")  # import the functions that solves for stationary distribution and asset market clearing
 
 
 prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
-while loop.converged == 0
-
+@time while loop.converged == 0
       @time V_iterate(prim, res, loop.q)      #  (1) value function iteration
-
       @time T_star_iterate(prim, res, loop.q) #  (2) solve for the stationary distribution
-
-      # ----------------------------------------------- #
-      # (3) check asset market clearing
-      # ----------------------------------------------- #
-      @unpack pol_func, μ = res    # unpack policy function and stationary distribution
-      @unpack s, a_grid, na, β = prim # unpack primitives
-      loop.net_asset_supply = 0.0  # reset net supply variable
-
-      loop.net_asset_supply = -sum(res.μ .* vcat(a_grid, a_grid)) # calculate net asset supply
-
-      if abs(loop.net_asset_supply) < loop.tol    # check if converged
-            loop.converged = 1
-            println("---------------------------------------------------------------")
-            println("          Main loop converged at bond price: ", loop.q)
-            println("---------------------------------------------------------------")
-      elseif loop.net_asset_supply > 0       # if agents are saving too much
-                                             # we raise bond price, leading to lower interest rate
-            q_hat = loop.q + (prim.β - loop.q)/2 * abs(loop.net_asset_supply)
-            println("---------------------------------------------------------------")
-            println("Agents saving too much; raise bond price from ", loop.q, " to ", q_hat)
-            println("---------------------------------------------------------------")
-            loop.q = q_hat
-      elseif loop.net_asset_supply < 0   # if agents are saving too little
-                                         # we lower bond price, leading to higher interest rate
-            q_hat = loop.q + (1 - loop.q)/2 * abs(loop.net_asset_supply)
-            println("---------------------------------------------------------------")
-            println("Agents saving too little; drop bond price from ", loop.q, " to ", q_hat)
-            println("---------------------------------------------------------------")
-            loop.q = q_hat
-      end
-
+      Check_asset_clearing(prim, res, loop)   #  (3) check asset market clearing
 end
 
 # ----------------------------------------------- #
@@ -106,5 +74,4 @@ Plots.plot!(wealth, wealth_mass_unemployed, label = "Unemployed", title="Wealth 
 
 Plots.savefig("output/Wealth_Distribution.png")
 
-
-# lorenz curve
+# (3) lorenz curve
