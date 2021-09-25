@@ -53,6 +53,7 @@ function T_star_iterate(prim::Primitives, res::Results, q::Float64, sup_norm::Fl
     n = 0              # counter for iteration
     tol = 1e-5         # tolerance value
     max_iter = 1000    # limit for number of iterations
+    converged = 0      # convergence indicator
 
     big_trans_mat = Make_big_trans_matrix(prim, res) # make big transition matrix from today to tomorrow's state
 
@@ -60,9 +61,13 @@ function T_star_iterate(prim::Primitives, res::Results, q::Float64, sup_norm::Fl
     println("        Starting T star iteration for bond price ", q)
     println("---------------------------------------------------------------")
 
-    while sup_norm > tol && n < max_iter     # loop until converged
+    while converged == 0 && n < max_iter                    # loop until converged
         μ_new = T_star_operator(big_trans_mat, res.μ)       # apply T star operator
-        sup_norm = sum(abs.(μ_new - res.μ))   # calculate the sup norm
+        sup_norm = sum(abs.(μ_new - res.μ))                 # calculate the sup norm
+
+        if sup_norm < tol                    # check if sup norm within tolerance
+            converged = 1
+        end
         res.μ = μ_new                        # update μ
         n += 1                               # update iteration counter
     end
