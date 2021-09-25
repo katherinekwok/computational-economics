@@ -15,43 +15,22 @@ include("value_function_iteration.jl") # import the functions that solves value 
 include("stationary_distribution.jl")     # import the functions that solves for stationary distribution
 
 
-
-# ----------------------------------------------- #
-#  (0) initialize things for algorithm
-# ----------------------------------------------- #
-
 prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
 while loop.converged == 0
 
-      #loop.q = (loop.q_max + loop.q_min)/2 # use bisection method to update q
-      loop.adjust_step = 0.01 * loop.q    # or use adjustment step to update q
+      @time V_iterate(prim, res, loop.q)      #  (1) value function iteration
 
-      # ----------------------------------------------- #
-      #  (1) value function iteration
-      # ----------------------------------------------- #
-
-      @time V_iterate(prim, res, loop.q)
-
-      # ----------------------------------------------- #
-      #  (2) solve for the stationary distribution
-      # ----------------------------------------------- #
-
-      @time T_star_iterate(prim, res, loop.q)
+      @time T_star_iterate(prim, res, loop.q) #  (2) solve for the stationary distribution
 
       # ----------------------------------------------- #
       # (3) check asset market clearing
       # ----------------------------------------------- #
       @unpack pol_func, μ = res    # unpack policy function and stationary distribution
-      @unpack s, a_grid, na = prim # unpack primitives
+      @unpack s, a_grid, na, β = prim # unpack primitives
       loop.net_asset_supply = 0.0  # reset net supply variable
 
-      for (s_index, s) in enumerate(s)                  # loop through current employment states
-            for (a_index, a) in enumerate(a_grid)       # loop through current asset grid
-                  μ_index = a_index + na*(s_index - 1)                         # get mapping to μ index from s, a
-                  loop.net_asset_supply += pol_func[a_index, s_index] * μ[μ_index]  # sum to net asset supply
-            end
-      end
+      loop.net_asset_supply = -sum(res.μ .* vcat(a_grid, a_grid)) # calculate net asset supply
 
       if abs(loop.net_asset_supply) < loop.tol    # check if converged
             loop.converged = 1
@@ -60,19 +39,20 @@ while loop.converged == 0
             println("---------------------------------------------------------------")
       elseif loop.net_asset_supply > 0       # if agents are saving too much
                                              # we raise bond price, leading to lower interest rate
-            #loop.q_min = loop.q                    # for bisection method
-            loop.q = loop.q + loop.adjust_step     # for adjustment method
+            q_hat = loop.q + (prim.β - loop.q)/2 * abs(loop.net_asset_supply)
             println("---------------------------------------------------------------")
-            println("          Agents saving too much; raise bond price")
+            println("Agents saving too much; raise bond price from ", loop.q, " to ", q_hat)
             println("---------------------------------------------------------------")
+            loop.q = q_hat
       elseif loop.net_asset_supply < 0   # if agents are saving too little
                                          # we lower bond price, leading to higher interest rate
-            #loop.q_max = loop.q                     # for bisection method
-            loop.q = loop.q - loop.adjust_step       # for adjustment method
+            q_hat = loop.q + (1 - loop.q)/2 * abs(loop.net_asset_supply)
             println("---------------------------------------------------------------")
-            println("          Agents saving too little; lower bond price")
+            println("Agents saving too little; drop bond price from ", loop.q, " to ", q_hat)
             println("---------------------------------------------------------------")
+            loop.q = q_hat
       end
+
 end
 
 # ----------------------------------------------- #
@@ -82,19 +62,18 @@ end
 @unpack a_grid, s, na = prim
 
 # (0) find first point where the the decision rule equals a_grid value, i.e. a_bar
-local match_index = 1
+global match_index = 1
 for i in 2:na
       if a_grid[i-1] < pol_func[i-1, 1] && a_grid[i] == pol_func[i, 1]
-            match_index = i
+            global match_index = i
       end
 end
-a_bar = a_grid[match_index] # found matched a_bar
 
 # (1) policy functions
 Plots.plot(a_grid, pol_func[:, 1], label = "Employed")
 Plots.plot!(a_grid, pol_func[:, 2], label = "Unemployed", title="Policy Functions")
 Plots.plot!(a_grid, a_grid, label = "45 Degree Line", linestyle = :dash)
-Plots.vline!([a_bar], label = "ā", legend = :bottomright)
+Plots.vline!([a_grid[match_index]], label = "ā", legend = :bottomright)
 xticks!(-2:1:3)
 yticks!(-2:1:3)
 xlims!(-2, 3)

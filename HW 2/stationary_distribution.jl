@@ -49,9 +49,9 @@ end
 
 # T_star_iterate: This function iterates the T star operator until we converge
 # at the stationary distribution
-function T_star_iterate(prim::Primitives, res::Results, q::Float64, sup_norm::Float64 = 100.0)
+function T_star_iterate(prim::Primitives, res::Results, q::Float64, err::Float64 = 100.0)
     n = 0              # counter for iteration
-    tol = 1e-5         # tolerance value
+    tol = 1e-6         # tolerance value
     max_iter = 1000    # limit for number of iterations
     converged = 0      # convergence indicator
 
@@ -61,11 +61,11 @@ function T_star_iterate(prim::Primitives, res::Results, q::Float64, sup_norm::Fl
     println("        Starting T star iteration for bond price ", q)
     println("---------------------------------------------------------------")
 
-    while converged == 0 && n < max_iter                    # loop until converged
-        μ_new = T_star_operator(big_trans_mat, res.μ)       # apply T star operator
-        sup_norm = sum(abs.(μ_new - res.μ))                 # calculate the sup norm
+    while converged == 0 && n < max_iter                       # loop until converged
+        μ_new = T_star_operator(big_trans_mat, res.μ)          # apply T star operator
+        err = abs.(maximum(μ_new - res.μ))/abs(maximum(μ_new)) # calculate err
 
-        if sup_norm < tol                    # check if sup norm within tolerance
+        if err < tol                         # check if err within tolerance
             converged = 1
         end
         res.μ = μ_new                        # update μ
