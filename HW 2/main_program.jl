@@ -16,9 +16,7 @@
 
 using Distributed, SharedArrays # load package for running julia in parallel
 using Parameters, Plots, Printf
-include("value_function_iteration.jl") # import the functions and strucs that solves value function iteration
-include("stationary_distribution.jl")  # import the functions that solves for stationary distribution and asset market clearing
-include("produce_figures.jl")          # import the functions that supplements figure making
+include("model_and_functions.jl") # import all functions and strucs 
 
 prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
