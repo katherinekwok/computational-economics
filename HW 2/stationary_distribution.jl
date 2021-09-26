@@ -4,8 +4,9 @@
 # This file contains the code for solving for the stationary wealth distribution.
 # Given the policy function from the value function iteration, we use the T star
 # operator to find the stationary distribution μ.
-
-include("value_function_iteration.jl") # import the functions that solves value function iteration
+#
+# NOTE: for ease of reading/revising, this code has been copied to the centralized
+# file for all supporting functions and strucs - "model_and_functions.jl"
 
 
 # Make_big_trans_matrix: function that creates the transition matrix that maps from
@@ -51,7 +52,7 @@ end
 # at the stationary distribution
 function T_star_iterate(prim::Primitives, res::Results, q::Float64, err::Float64 = 100.0)
     n = 0              # counter for iteration
-    tol = 1e-6         # tolerance value
+    tol = 1e-5         # tolerance value
     max_iter = 1000    # limit for number of iterations
     converged = 0      # convergence indicator
 
@@ -84,7 +85,7 @@ function Check_asset_clearing(prim::Primitives, res::Results, loop::Loop)
     @unpack s, a_grid, na, β = prim # unpack primitives
     loop.net_asset_supply = 0.0  # reset net supply variable
 
-    loop.net_asset_supply = sum(res.μ .* vcat(a_grid, a_grid)) # calculate net asset supply
+    loop.net_asset_supply = res.μ' * vcat(a_grid, a_grid) # calculate net asset supply
 
     if abs(loop.net_asset_supply) < loop.tol    # check if converged
         loop.converged = 1
@@ -92,15 +93,15 @@ function Check_asset_clearing(prim::Primitives, res::Results, loop::Loop)
         @printf "          Main loop converged at bond price: %.6f \n" loop.q
         println("-----------------------------------------------------------------------")
     elseif loop.net_asset_supply > 0       # if agents are saving too much
-                                         # we raise bond price, leading to lower interest rate
-        q_hat = loop.q + (1 - loop.q)/2* abs(loop.net_asset_supply)
+                                           # we raise bond price, leading to lower interest rate
+        q_hat = loop.q + (loop.q_max - loop.q)/2*abs(loop.net_asset_supply)
         println("-----------------------------------------------------------------------")
         @printf "Agents saving too much; raise bond price from %.6f to %.6f \n" loop.q q_hat
         println("-----------------------------------------------------------------------")
         loop.q = q_hat
     elseif loop.net_asset_supply < 0   # if agents are saving too little
-                                     # we lower bond price, leading to higher interest rate
-        q_hat = loop.q + (prim.β - loop.q)/2* abs(loop.net_asset_supply)
+                                       # we lower bond price, leading to higher interest rate
+        q_hat = loop.q + (loop.q_min - loop.q)/2*abs(loop.net_asset_supply)
         println("-----------------------------------------------------------------------")
         @printf "Agents saving too little; drop bond price from %.6f to %.6f \n" loop.q q_hat
         println("-----------------------------------------------------------------------")

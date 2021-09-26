@@ -15,7 +15,7 @@
 # ----------------------------------------------- #
 
 using Distributed, SharedArrays # load package for running julia in parallel
-using Parameters, Plots
+using Parameters, Plots, Printf
 include("value_function_iteration.jl") # import the functions and strucs that solves value function iteration
 include("stationary_distribution.jl")  # import the functions that solves for stationary distribution and asset market clearing
 include("produce_figures.jl")          # import the functions that supplements figure making
@@ -35,7 +35,6 @@ end
 # ----------------------------------------------- #
 #  (4) make plots
 # ----------------------------------------------- #
-
 Plot_pol_func(res, prim)                             # (a) plot policy functions
 w, w_mass_e, w_mass_u = Plot_wealth_dist(res, prim)  # (b) plot wealth distribution
 Plot_lorenz(w, w_mass_e, w_mass_u)                   # (c) plot lorenz curve
@@ -43,3 +42,5 @@ Plot_lorenz(w, w_mass_e, w_mass_u)                   # (c) plot lorenz curve
 # ----------------------------------------------- #
 #  (5) welfare calculations
 # ----------------------------------------------- #
+Plot_λ(λ, prim)                                      # (a) calculate W_FB, λ
+Calc_welfare(prim, res, λ)                           # (b) calculate W_INC, W_G, fraction in favor of complete mkt

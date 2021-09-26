@@ -4,10 +4,13 @@
 # This file contains the Value Function Iteration (VFT) code. This program iteratively
 # calls the Bellman Function to solve the Household problem, in order to find
 # the value maximizing policy function.
+#
+# NOTE: for ease of reading/revising, this code has been copied to the centralized
+# file for all supporting functions and strucs - "model_and_functions.jl"
 
 # Primitives: keyword-enabled structure
 @with_kw struct Primitives
-    β::Float64 = 0.994      # discount rate
+    β::Float64 = 0.9932      # discount rate
     α::Float64 = 1.5        # coefficient of relative risk aversion
 
     a_min::Float64 = -2.0   # asset lower bound
@@ -37,6 +40,8 @@ mutable struct Loop
     q::Float64                    # q value
     converged::Float64            # converged indicator
     adjust_step::Float64          # adjustment step for adjustment method
+    q_max::Float64                # q max
+    q_min::Float64                # q min
 end
 
 # Initialize: function for initializing model primitives and results structs
@@ -48,8 +53,10 @@ function Initialize()
     res = Results(val_func, pol_func, μ)            # initialize results struct
     q_0 = (prim.β + 1)/2                            # assume 1 > q > β, so start at mid point
     tol_q = 1e-3                                    # tolerance for main loop
-    loop = Loop(tol_q, 100.0, q_0, 0, 0.0)          # initialize loop variables
-    prim, res, loop                                 # return deliverables
+    q_max = 0.996                                   # q max for bisection
+    q_min = prim.β                                  # q min for bisection
+    loop = Loop(tol_q, 100.0, q_0, 0, 0.0, q_max, q_min)  # initialize loop variables
+    prim, res, loop                                       # return deliverables
 end
 
 # Bellman: function encoding the Bellman Function, which is called repeatedly
