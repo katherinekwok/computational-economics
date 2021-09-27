@@ -3,7 +3,7 @@
 
 # This file contains the model, struc, and functions that support the main program.jl.
 # The code below is divided into the following sections:
-#    (0) initializing the algorithm  
+#    (0) initializing the algorithm
 #    (1) value function iteration
 #    (2) solving for the stationary distribution
 #    (3) finding the asset market clearing bond price
@@ -280,7 +280,7 @@ function Plot_pol_func(res::Results, prim::Primitives)
       # plot 45 degree line
       Plots.plot!(a_grid, a_grid, label = "45 Degree Line", linestyle = :dash)
       # set plot attributes
-      Plots.plot!(xticks = (-2:1:3), yticks = (-2:1:3), xlims = (-2, 2.5), ylims = (-2, 2.5))
+      Plots.plot!(xticks = (-2:1:3), yticks = (-2:1:3), xlims = (-2, 2.5), ylims = (-2, 2.5), xlabel = "a (assets today)", ylabel = "a' (assets tomorrow)")
       # plot a bar vertical line
       Plots.vline!([a_bar], label = "ā = $a_bar", legend = :topleft)
       Plots.savefig("output/Policy_Functions.png")
@@ -318,7 +318,7 @@ function Plot_wealth_dist(res::Results, prim::Primitives)
 
       Plots.plot(wealth, wealth_mass_e, label = "Employed", legend=:topleft) # plot wealth distribution
       Plots.plot!(wealth, wealth_mass_u, label = "Unemployed", title="Wealth Distribution")
-      Plots.plot!(xlims = (-2, 2.5))
+      Plots.plot!(xlims = (-2, 2.5), xlabel = "Wealth", ylabel = "Fraction of population")
       Plots.savefig("output/Wealth_Distribution.png")
 
       wealth, wealth_mass_e, wealth_mass_u
@@ -349,6 +349,7 @@ function Plot_lorenz(wealth::Array{Float64}, wealth_mass_e::Array{Float64}, weal
 
       Plots.plot(cs_wealth_mass, cs_pop_wealth, label = "Lorenz Curve", title="Lorenz Curve")                    # plot lorenz curve
       Plots.plot!(cs_wealth_mass, cs_wealth_mass, label = "45 Degree Line", linestyle = :dash, legend =:topleft) # plot 45 degree line
+      Plots.plot!(xlabel = "Fraction of agents", ylabel = "Fraction of wealth")
       Plots.savefig("output/Lorenz_Curve.png")
 
       Calc_gini(cs_wealth_mass, cs_pop_wealth) # calculate gini index
@@ -386,11 +387,13 @@ function Solve_λ(prim::Primitives, res::Results)
 end
 
 # Plot_λ: This function plots the λ for employed and unemployed
-function Plot_λ(λ::Array{Float64, 2}, prim::Primitives)
+function Plot_λ(λ::Array{Float64, 2}, prim::Primitives, res::Results)
       @unpack a_grid = prim
 
-      Plots.plot(a_grid, λ[:, 1], label = "Employed", title="λ(a, s)")        # plot for employed
-      Plots.plot!(a_grid, λ[:, 2], label = "Unemployed", legend =:topright)   # plot for unemployed
+      λ = Solve_λ(prim, res)
+
+      Plots.plot(a_grid, λ[:, 1], label = "Employed", title="Consumption Equivalence Estimates")        # plot for employed
+      Plots.plot!(a_grid, λ[:, 2], label = "Unemployed", legend =:topright, xlabel = "a (assets today)")   # plot for unemployed
       Plots.savefig("output/Lambda.png")
 end
 

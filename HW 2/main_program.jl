@@ -16,7 +16,7 @@
 
 using Distributed, SharedArrays # load package for running julia in parallel
 using Parameters, Plots, Printf
-include("model_and_functions.jl") # import all functions and strucs 
+include("model_and_functions.jl") # import all functions and strucs
 
 prim, res, loop = Initialize()    # initialize primitives, results, loop struct
 
@@ -40,5 +40,5 @@ Plot_lorenz(w, w_mass_e, w_mass_u)                   # (c) plot lorenz curve
 # ----------------------------------------------- #
 #  (5) welfare calculations
 # ----------------------------------------------- #
-Plot_λ(λ, prim)                                      # (a) calculate W_FB, λ
+Plot_λ(λ, prim, res)                                 # (a) calculate W_FB, λ
 Calc_welfare(prim, res, λ)                           # (b) calculate W_INC, W_G, fraction in favor of complete mkt
