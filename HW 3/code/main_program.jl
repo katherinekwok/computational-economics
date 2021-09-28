@@ -15,8 +15,13 @@
 #  (0) load packages, functions, initialize
 # ----------------------------------------------- #
 
-using Distributed, SharedArrays # load package for running julia in parallel
-using Parameters, Plots, Printf
+using Distributed, SharedArrays   # load package for running julia in parallel
+using Parameters, Plots, Printf, LinearAlgebra # load standard packages
 include("model_and_functions.jl") # import all functions and strucs
 
-prim, res, loop = Initialize()    # initialize primitives, results, loop struct
+prim = initialize_prims()   # initialize benchmark primitives
+res = initialize_results(prim)  # initialize results structures
+
+# ----------------------------------------------- #
+#  (1) solve dynamic programming problem
+# ----------------------------------------------- #
