@@ -39,9 +39,9 @@ Plots.plot(a_grid, val_func[:, index_age_50], label = "", title = "Value Functio
 # plot policy function for age 20
 index_age_20_h = 20 * nz - 1
 index_age_20_l = 20 * nz
-Plots.plot(a_grid, pol_func[:, index_age_20_h].- a_grid, label = "High productivity")
-Plots.plot!(a_grid, pol_func[:, index_age_20_l].- a_grid, label = "Low productivity",
-title = "Policy Function for Worker at Age 20", legend = :topleft, xlims = [0, 30], ylims = [-0.5, 2])
+Plots.plot(a_grid, pol_func[:, index_age_20_h] .- a_grid, label = "High productivity")
+Plots.plot!(a_grid, pol_func[:, index_age_20_l] .- a_grid, label = "Low productivity",
+title = "Policy Function for Worker at Age 20", legend = :topleft, xlims = [0, 80], ylims = [-1, 2])
 
 # plot labor supply for age 20
 Plots.plot(a_grid, lab_func[:, index_age_20_h], label = "High productivity")

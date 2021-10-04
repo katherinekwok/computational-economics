@@ -93,7 +93,7 @@ function initialize_prims(;z_h::Float64=3.0, z_l::Float64=0.5, θ_input::Float64
     age_retire = 46  # retirement age
     μ = initialize_mu(N, n) # relative sizes of cohort (μ sums to 1)
     β = 0.97         # discount rate
-    σ = 2            # coefficient of relative risk aversion
+    σ = 2.0          # coefficient of relative risk aversion
     θ = θ_input      # proportional labor income tax to finance benefits
     γ = γ_input      # weight on consumption
     α = 0.36         # capital share
@@ -108,7 +108,7 @@ function initialize_prims(;z_h::Float64=3.0, z_l::Float64=0.5, θ_input::Float64
 
     nz = 2                                   # number of productivity states
     z = [z_h, z_l]                           # productivity state high and low
-    z_matrix= [0.9261 0.0739; 0.9811 0.0189] # transition matrix for productivity state
+    z_matrix= [0.9261 0.0739; 0.0189 0.9811] # transition matrix for productivity state
     z_initial_prob = [0.2037 0.7963]         # initial probabilies for z high and low (age = 1)
     e = initialize_e(z, η_input_file)        # worker productivities (cross product of z and η_j)
 
@@ -145,24 +145,8 @@ end
 
 # utility_retiree: this function encodes the utility function of the retiree
 function utility_retiree(c::Float64, σ::Float64, γ::Float64)
-    u_r = c^((1-σ)*γ)/(1-σ) # CRRA utility for retiree
+    u_r = (c^((1-σ)*γ))/(1-σ) # CRRA utility for retiree
     u_r # return calculation
-end
-
-# utility_worker: this function encodes the utility function of the worker
-function utility_worker(c::Float64, l::Float64, σ::Float64, γ::Float64)
-    u_w = ((c^γ)*(1-l)^(1-γ))^(1-σ)/(1-σ) # CRRA utility for worker
-    u_w # return calculation
-end
-
-# labor_supply: this function encodes the labor supply function
-function labor_supply(γ::Float64, θ::Float64, e_today::Float64, w::Float64,
-    r::Float64, a_today::Float64, a_tomorrow::Float64)
-
-    top = γ*(1-θ)*e_today*w - (1-γ)*((1+r)*a_today - a_tomorrow)   # numerator of labor supply function
-    bottom = (1-θ)*w*e_today                                       # denominator of labor supply function
-    labor = top/bottom                                             # get labor supply function
-    labor
 end
 
 # bellman_retiree: this function encodes the Bellman function for the retired
@@ -170,7 +154,7 @@ function bellman_retiree(prim::Primitives, res::Results, age::Int64)
     @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β = prim
     @unpack val_func = res
 
-    val_index = (age_retire - 1)*nz + (age - age_retire + 1)  # mapping to index in val func
+    val_index = (age_retire - 1)*nz + age - age_retire + 1  # mapping to index in val func
 
     if age == N # if age == N, initialize last year of life value function
         for (a_index, a_today) in enumerate(a_grid)
@@ -203,6 +187,24 @@ function bellman_retiree(prim::Primitives, res::Results, age::Int64)
     end # end of if statement checking for whether at end of life or not
 end
 
+# utility_worker: this function encodes the utility function of the worker
+function utility_worker(c::Float64, l::Float64, σ::Float64, γ::Float64)
+    u_w = (((c^γ)*(1-l)^(1-γ))^(1-σ))/(1-σ) # CRRA utility for worker
+    u_w # return calculation
+end
+
+# labor_supply: this function encodes the labor supply function
+function labor_supply(γ::Float64, θ::Float64, e_today::Float64, w::Float64,
+    r::Float64, a_today::Float64, a_tomorrow::Float64)
+
+    top = γ*(1-θ)*e_today*w - (1-γ)*((1+r)*a_today - a_tomorrow)   # numerator of labor supply function
+    bottom = (1-θ)*w*e_today                                       # denominator of labor supply function
+    labor = top/bottom                                             # get labor supply (interior solution)
+
+    labor = min(1, max(0, labor))                                  # check if we do not get interior solution
+    labor
+end
+
 # bellman_worker: this function encodes the Bellman function for workers
 function bellman_worker(prim::Primitives, res::Results, age::Int64)
     @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β, z, θ, e, z_matrix, w = prim
@@ -229,7 +231,7 @@ function bellman_worker(prim::Primitives, res::Results, age::Int64)
                 l = labor_supply(γ, θ, e_today, w, r, a_today, a_tomorrow)       # labor supply for worker
                 c = w * (1-θ) * e_today * l + (1 + r) * a_today - a_tomorrow     # consumption for worker
 
-                if c > 0 && l >= 0 && l <= 1                 # check for positivity of c and constraint on l: 0 <= l <= 1
+                if c > 0 && l >= 0 && l <= 1                            # check for positivity of c and constraint on l: 0 <= l <= 1
                     if age == age_retire -1                                     # if age == 45 (retired next period), then no need for transition probs
                         v_next_val = res.val_func[ap_index, age * nz + 1]       # get next period val func (just scalar) given a_tomorrow
                         v_today = utility_worker(c, l, σ, γ) + β * v_next_val   # value function for worker
