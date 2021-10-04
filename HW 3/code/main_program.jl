@@ -27,23 +27,4 @@ res = initialize_results(prim)  # initialize results structures
 # ----------------------------------------------- #
 
 v_backward_iterate(prim, res)
-
-
-@unpack val_func, pol_func, lab_func = res
-@unpack a_grid, nz, age_retire = prim
-
-# plot value function for age 50
-index_age_50 = (age_retire - 1) * nz + 50 - age_retire + 1
-Plots.plot(a_grid, val_func[:, index_age_50], label = "", title = "Value Function for Retired Agent at 50")
-
-# plot policy function for age 20
-index_age_20_h = 20 * nz - 1
-index_age_20_l = 20 * nz
-Plots.plot(a_grid, pol_func[:, index_age_20_h] .- a_grid, label = "High productivity")
-Plots.plot!(a_grid, pol_func[:, index_age_20_l] .- a_grid, label = "Low productivity",
-title = "Policy Function for Worker at Age 20", legend = :topleft, xlims = [0, 80], ylims = [-1, 2])
-
-# plot labor supply for age 20
-Plots.plot(a_grid, lab_func[:, index_age_20_h], label = "High productivity")
-Plots.plot!(a_grid, lab_func[:, index_age_20_l], label = "Low productivity",
-title = "Labor Supply for Worker at Age 20", legend = :topleft)
+plot_ex_1(prim, res)
