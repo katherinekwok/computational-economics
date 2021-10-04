@@ -102,8 +102,8 @@ function initialize_prims(;z_h::Float64=3.0, z_l::Float64=0.5, θ_input::Float64
     r = r_initial    # initial interest rate
     b = 0.2          # social security payment to retirees
     a_min = 0.0      # asset lower bound
-    a_max = 5.0      # asset upper bound
-    na = 1000        # number of asset grid points
+    a_max = 75.0     # asset upper bound
+    na = 5000        # number of asset grid points
     a_grid = collect(range(a_min, length = na, stop = a_max)) # asset grid
 
     nz = 2                                   # number of productivity states
@@ -122,7 +122,9 @@ function initialize_results(prim::Primitives)
 
     # number of columns for results arrays, retirees have one column at each age
     # and workers have one column for each productivity state and age
-    col_num_all = (N - age_retire) + (age_retire - 1)*nz
+    # columns are ordered so that the first 45 * 2 = 90 columns are for workers
+    # then 66 - 46 + 1 = 21 columns are for retirees
+    col_num_all = (N - age_retire + 1) + (age_retire - 1)*nz
 
     # number of columns for labor function array; only includes workers - one column
     # for each productivity and age from 1 - 45
@@ -141,28 +143,128 @@ end
 #  (1) Functions for solving dynamic programming problem
 # ---------------------------------------------------------------------------- #
 
-# V_iterate: is the value function iteration loop, which calls the Bellman
-# function repeatedly until we reach convergence.
-function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-5, err::Float64 = 100.0)
-    n = 0         # counter for iteration
-    converged = 0 # indicator for convergence
+# utility_retiree: this function encodes the utility function of the retiree
+function utility_retiree(c::Float64, σ::Float64, γ::Float64)
+    u_r = c^((1-σ)*γ)/(1-σ) # CRRA utility for retiree
+    u_r # return calculation
+end
 
-    println("-----------------------------------------------------------------------")
-    @printf "      Starting value function iteration for bond price  %.6f \n" q
-    println("-----------------------------------------------------------------------")
-    while converged == 0  # keep iterating until we error less than tolerance value
+# utility_worker: this function encodes the utility function of the worker
+function utility_worker(c::Float64, l::Float64, σ::Float64, γ::Float64)
+    u_w = ((c^γ)*(1-l)^(1-γ))^(1-σ)/(1-σ) # CRRA utility for worker
+    u_w # return calculation
+end
 
-        v_next = Bellman(prim, res, q)                                 # call Bellman
-        err = abs.(maximum(v_next.-res.val_func))/abs(maximum(v_next)) # check for error
+# labor_supply: this function encodes the labor supply function
+function labor_supply(γ::Float64, θ::Float64, e_today::Float64, w::Float64,
+    r::Float64, a_today::Float64, a_tomorrow::Float64)
 
-        if err < tol          # if error less than tolerance
-            converged = 1     # we have converged
+    top = γ*(1-θ)*e_today*w - (1-γ)*((1+r)*a_today - a_tomorrow)   # numerator of labor supply function
+    bottom = (1-θ)*w*e_today                                       # denominator of labor supply function
+    labor = top/bottom                                             # get labor supply function
+    labor
+end
+
+# bellman_retiree: this function encodes the Bellman function for the retired
+function bellman_retiree(prim::Primitives, res::Results, age::Int64)
+    @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β = prim
+    @unpack val_func = res
+
+    val_index = (age_retire - 1)*nz + (age - age_retire + 1)  # mapping to index in val func
+
+    if age == N # if age == N, initialize last year of life value function
+        for (a_index, a_today) in enumerate(a_grid)
+            c = (1 + r) * a_today + b                                   # consumption in last year of life (a' = 0)
+            res.val_func[a_index, val_index] = utility_retiree(c, σ, γ) # value function for retiree given utility (v_next = 0 for last period of life)
         end
-        res.val_func = v_next # update val func
-        n += 1                # update loop counter
+    else # if not at end of life, compute value funaction for normal retiree
+        choice_lower = 1                                                # for exploiting monotonicity of policy function
 
+        for (a_index, a_today) in enumerate(a_grid)                     # loop through asset levels today
+            max_val = -Inf                                              # initialize max val
+
+            for ap_index in choice_lower:na                             # loop through asset levels tomorrow
+                a_tomorrow = a_grid[ap_index]                           # get a tomorrow
+                v_next_val = res.val_func[ap_index, val_index+1]        # get next period val func given a'
+                c = (1 + r) * a_today + b - a_tomorrow                  # consumption for retiree
+
+                if c > 0                                                    # check for positivity of c
+                    v_today = utility_retiree(c, σ, γ) + β * v_next_val     # value function for retiree
+
+                    if max_val < v_today  # check if we have bigger value for this a_tomorrow
+                        max_val = v_today                                   # update max value
+                        res.pol_func[a_index, val_index] = a_tomorrow       # update asset policy
+                        choice_lower = ap_index
+                    end
+                end
+            end # end of a_tomorrow loop for standard retiree
+            res.val_func[a_index, val_index] = max_val # update val function for a_today and age
+        end # end of a_today loop for standard retiree
+    end # end of if statement checking for whether at end of life or not
+end
+
+# bellman_worker: this function encodes the Bellman function for workers
+function bellman_worker(prim::Primitives, res::Results, age::Int64)
+    @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β, z, θ, e, z_matrix, w = prim
+    @unpack val_func = res
+
+    for (z_index, z_today) in enumerate(z)                              # loop through productivity states
+        e_today = e[age, z_index]                                       # get productivity for age and z_today
+        z_prob = z_matrix[z_index, :]                                   # get transition probabilities given z_today
+
+        if z_index == 1                                                 # get val_func index based on age and state
+            val_index = (age * nz) - 1                                  # high productivity
+        else
+            val_index = age * nz                                        # low productivity
+        end
+
+        choice_lower = 1                                                # for exploiting monotonicity of policy function
+
+        for (a_index, a_today) in enumerate(a_grid)                     # loop through asset levels today
+            max_val = -Inf                                              # initialize max val
+
+            for ap_index in choice_lower:na                             # loop through asset levels tomorrow
+
+                a_tomorrow = a_grid[ap_index]                           # get a tomorrow
+                l = labor_supply(γ, θ, e_today, w, r, a_today, a_tomorrow)       # labor supply for worker
+                c = w * (1-θ) * e_today * l + (1 + r) * a_today - a_tomorrow     # consumption for worker
+
+                if c > 0 && l >= 0 && l <= 1                 # check for positivity of c and constraint on l: 0 <= l <= 1
+                    if age == age_retire -1                                     # if age == 45 (retired next period), then no need for transition probs
+                        v_next_val = res.val_func[ap_index, age * nz + 1]       # get next period val func (just scalar) given a_tomorrow
+                        v_today = utility_worker(c, l, σ, γ) + β * v_next_val   # value function for worker
+
+                    else                                                                  # else, need transition probs
+                        v_next_val = res.val_func[ap_index, (age+1)*nz - 1:(age+1)*nz]    # get next period val func (vector including high and low prod) given a_tomorrow
+                        v_today = utility_worker(c, l, σ, γ) + β * z_prob' * v_next_val   # value function for worker with transition probs
+                    end
+
+                    if max_val <= v_today  # check if we have bigger value for this a_tomorrow
+                        max_val = v_today                                   # update max value
+                        res.pol_func[a_index, val_index] = a_tomorrow       # update asset policy
+                        res.lab_func[a_index, val_index] = l                # update labor policy
+                        choice_lower = ap_index
+                    end
+                end
+            end # end of a_tomorrow loop for worker
+            res.val_func[a_index, val_index] = max_val # update val function for a_today and age
+        end # end of a_today loop for worker
+    end
+end
+
+# v_backward_iterate: is the value function iteration loop, which calls the Bellman
+# function from end of life until the beginning (i.e. iterates backward)
+function v_backward_iterate(prim::Primitives, res::Results)
+    @unpack N, age_retire = prim
+
+    for age in N:-1:1
+        if age >= age_retire                   # if between retirement age and end of life
+            bellman_retiree(prim, res, age)    # call Bellman for retiree
+        else                                   # else, agent is still worker
+            bellman_worker(prim, res, age)     # call Bellman for worker
+        end
     end
     println("-----------------------------------------------------------------------")
-    println("       Value function converged in ", n, " iterations.")
+    println("              Value function interation is complete.")
     println("-----------------------------------------------------------------------")
 end
