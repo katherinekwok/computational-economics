@@ -11,20 +11,34 @@
 #          and asset holdings.
 #      (3) Test counterfactuals
 
-# ----------------------------------------------- #
+# ------------------------------------------------------------------------ #
 #  (0) load packages, functions, initialize
-# ----------------------------------------------- #
+# ------------------------------------------------------------------------ #
 
-using Distributed, SharedArrays   # load package for running julia in parallel
 using Parameters, Plots, Printf, LinearAlgebra # load standard packages
-include("model_and_functions.jl") # import all functions and strucs
+include("model_and_functions.jl")              # import all functions and strucs
 
-prim = initialize_prims()   # initialize benchmark primitives
+prim = initialize_prims()       # initialize benchmark primitives
 res = initialize_results(prim)  # initialize results structures
 
-# ----------------------------------------------- #
-#  (1) solve dynamic programming problem
-# ----------------------------------------------- #
-
+# ------------------------------------------------------------------------ #
+#  (1) solve dynamic programming problem given w_0, r_0
+# ------------------------------------------------------------------------ #
 v_backward_iterate(prim, res)
 plot_ex_1(prim, res)
+
+# ------------------------------------------------------------------------ #
+#  (2) solve for steady distribution given w_0, r_0
+# ------------------------------------------------------------------------ #
+solve_ψ(prim, res)
+
+# ------------------------------------------------------------------------ #
+#  (3) test benchmark model and different experiments
+# ------------------------------------------------------------------------ #
+
+# want to converge to K = 3.3478, L = 0.3433, w = 1.45455, r = 2.3644, b = 0.2
+@elapsed solve_model()   # (3a) test benchmark model
+
+solve_model(θ_0 = 0.0)   # (3b) experiment 1: θ = 0 i.e. no social insurance
+solve_model(z_h_0 = 0.5) # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity
+solve_model(γ_0 = 1.0)   # (3d) experiment 3: γ = 1 i.e labor supply is exogenous
