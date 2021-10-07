@@ -15,6 +15,7 @@
 #  (0) load packages, functions, initialize
 # ------------------------------------------------------------------------ #
 
+using Distributed, SharedArrays                # load package for running julia in parallel
 using Parameters, Plots, Printf, LinearAlgebra # load standard packages
 include("model_and_functions.jl")              # import all functions and strucs
 
@@ -36,9 +37,12 @@ solve_ψ(prim, res)
 #  (3) test benchmark model and different experiments
 # ------------------------------------------------------------------------ #
 
-# want to converge to K = 3.3478, L = 0.3433, w = 1.45455, r = 2.3644, b = 0.2
-@elapsed solve_model()   # (3a) test benchmark model
+# want to converge to K = 3.35780, L = 0.34327, w = 1.45455, r = 2.36442, b = 0.22513
+@time solve_model()            # (3a) test benchmark model
+@time solve_model(θ_0 = 0.0)   # (3b) experiment 1: θ = 0 i.e. no social insurance
 
-solve_model(θ_0 = 0.0)   # (3b) experiment 1: θ = 0 i.e. no social insurance
-solve_model(z_h_0 = 0.5) # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity
-solve_model(γ_0 = 1.0)   # (3d) experiment 3: γ = 1 i.e labor supply is exogenous
+@time solve_model(z_h_0 = 0.5)            # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity
+@time solve_model(z_h_0 = 0.5, θ_0 = 0.0) # (3d) experiment 3: z_h = z_l = 0.5 + θ = 0
+
+@time solve_model(γ_0 = 1.0)              # (3e) experiment 4: γ = 1 i.e labor supply is exogenous
+@time solve_model(γ_0 = 1.0, θ_0 = 0.0)   # (3f) experiment 4: γ = 1 + θ = 0

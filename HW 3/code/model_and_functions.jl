@@ -18,7 +18,7 @@
 
 # Primitives: The primitives struc holds the model primitives. These numbers
 #             are changed to test counterfactuals in part (3)
-mutable struct Primitives
+@everywhere mutable struct Primitives
     N::Int64                         # agent life span
     n::Float64                       # population growth rate
     age_retire::Int64                # retirement age
@@ -47,7 +47,7 @@ end
 
 # Results: This results struc holds the results from solving the household
 #          dynamic programming problem and stationary distribution.
-mutable struct Results
+@everywhere mutable struct Results
     # all the results are 2D because one row for each asset level today, and
     # one column for each age and productivity state
 
@@ -112,7 +112,7 @@ function initialize_prims(;z_h::Float64=3.0, z_l::Float64=0.5, θ_input::Float64
     b = b_input      # social security payment to retirees
     a_min = 0.0      # asset lower bound
     a_max = 75.0     # asset upper bound
-    na = 5000        # number of asset grid points
+    na = 3750        # number of asset grid points
     a_grid = collect(range(a_min, length = na, stop = a_max)) # asset grid
 
     nz = 2                                   # number of productivity states
@@ -197,7 +197,7 @@ function bellman_retiree(prim::Primitives, res::Results, age::Int64)
         for (a_index, a_today) in enumerate(a_grid)                     # loop through asset levels today
             max_val = -Inf                                              # initialize max val
 
-            for ap_index in choice_lower:na                             # loop through asset levels tomorrow
+            @sync @distributed for ap_index in choice_lower:na          # loop through asset levels tomorrow
                 a_tomorrow = a_grid[ap_index]                           # get a tomorrow
                 v_next_val = res.val_func[ap_index, val_index+1]        # get next period val func given a'
                 c = (1 + r) * a_today + b - a_tomorrow                  # consumption for retiree
@@ -254,7 +254,7 @@ function bellman_worker(prim::Primitives, res::Results, age::Int64)
         for (a_index, a_today) in enumerate(a_grid)                     # loop through asset levels today
             max_val = -Inf                                              # initialize max val
 
-            for ap_index in choice_lower:na                             # loop through asset levels tomorrow
+            @sync @distributed for ap_index in choice_lower:na          # loop through asset levels tomorrow
 
                 a_tomorrow = a_grid[ap_index]                           # get a tomorrow
                 l = labor_supply(γ, θ, e_today, w, r, a_today, a_tomorrow)       # labor supply for worker
@@ -345,21 +345,21 @@ end
 function make_trans_matrix(prim::Primitives, res::Results, age::Int64)
     @unpack a_grid, na, nz, z_matrix, z, age_retire = prim  # unpack model primitives
     @unpack pol_func = res                                  # unpack policy function from value function iteration
-    trans_mat = zeros(nz*na, nz*na)                         # initiate transition matrix
+    trans_mat = zeros(nz*na, nz*na)                         # initiate transition matrix (zeros)
 
     for (z_index, z_today) in enumerate(z)                  # loop through current productivity states
         for (a_index, a_today) in enumerate(a_grid)         # loop through current asset grid
 
-            row_index = a_index + na*(z_index - 1)          # create mapping from current a, z indices to big trans matrix ROW index (today's state)
+            row_index = a_index + na*(z_index - 1)        # create mapping from current a, z indices to big trans matrix ROW index (today's state)
             if age >= age_retire
-                val_index = retiree_val_index(age_retire, nz, age)    # get asset index for retireee
+                val_index = retiree_val_index(age_retire, nz, age)  # get asset index for retireee
             else
-                val_index = worker_val_index(z_index, age, nz)        # get asset index for worker
+                val_index = worker_val_index(z_index, age, nz)      # get asset index for worker
             end
-            a_choice = pol_func[a_index, val_index]                   # get asset choice
+            a_choice = pol_func[a_index, val_index]                 # get asset choice
 
-            for (zp_index, z_tomorrow) in enumerate(z)                      # loop through future productivity states
-                for (ap_index, a_tomorrow) in enumerate(a_grid)             # loop through future asset states
+            for (zp_index, z_tomorrow) in enumerate(z)            # loop through future productivity states
+                for (ap_index, a_tomorrow) in enumerate(a_grid)   # loop through future asset states
 
                     if a_choice == a_tomorrow                               # check if a_choice from policy function matches a tomorrow (this is the indicator in T*)
                         col_index = ap_index + na*(zp_index - 1)            # create mapping from current a, z indices to big trans matrix COLUMN index (tomorrow's state)
@@ -443,57 +443,109 @@ function calc_aggregate(prim::Primitives, res::Results)
     agg_K, agg_L # retired calculate aggregate values
 end
 
+# calc_prices: This function calculates the prices (r and w) and b
+function calc_prices(prim::Primitives, K_0::Float64, L_0::Float64)
+    @unpack α, δ, θ, μ_r = prim
+
+    prim.w = F_1(α, K_0, L_0)
+    prim.r = F_2(α, δ, K_0, L_0)
+    prim.b = calculate_b(θ, prim.w, L_0, μ_r)
+end
+
+# calc_welfare: This function calculates the welfare of each specification
+function calc_welfare(prim::Primitives, res::Results)
+    @unpack na, nz, N, age_retire = prim
+    @unpack val_func, ψ = res
+
+    welfare = 0.0                   # initialize welfare
+    for age in 1:N                  # loop through all ages
+        if age < age_retire
+            val_index_h = worker_val_index(1, age, nz)  # get indices for val func for high prod
+            val_index_l = worker_val_index(2, age, nz)  # get indices for val func for low prod
+
+            welfare += ψ[1:na, age]' * val_func[:, val_index_h] # val func multiplied by stationary dist for high prod
+            welfare += ψ[na+1:nz*na, age]' * val_func[:, val_index_l] # val func multiplied by stationary dist for low prod
+        else
+            val_index = retiree_val_index(age_retire, nz, age)
+            welfare += ψ[1:na, age]' * val_func[:, val_index]
+            welfare += ψ[na+1:nz*na, age]' * val_func[:, val_index]
+        end
+    end
+    welfare
+end
+
+# calc_wealth_var: This function calculates the coefficient of variation for the
+# wealth distribution
+function calc_wealth_var(prim, res)
+    # figure out how to do this
+end
+
 # check_market_clearing: This function calls a helper function to calculate the
 # aggregate K and L, checks if it falls within the tolerance value, and and if
 # not, updates the K and L values.
 function check_market_clearing(prim::Primitives, res::Results, n::Int64; λ::Float64 = 0.99, tol::Float64 = 1.0e-3)
-    @unpack α, δ, θ, μ_r = prim
 
     K_1, L_1 = calc_aggregate(prim, res)                 # calculate aggregate K_1, L_1 after VFT and solving for ψ
     abs_diff = abs(K_1 - prim.K_0) + abs(L_1 - prim.L_0) # calculate abs difference
 
     if abs_diff < tol                                 # if abs diff < tolerance val, we've converged
-        converged = 1
+        converged = 1                                 # update convergence flag
+        prim.K_0 = K_1                                # update with final K and L
+        prim.L_0 = L_1
+
     else
         prim.K_0 = λ * K_1 + (1-λ) * prim.K_0         # else, we update K_0 and L_0
         prim.L_0 = λ * L_1 + (1-λ) * prim.L_0
 
-        prim.w = F_1(α, prim.K_0, prim.L_0)           # update prices (r, w) and b
-        prim.r = F_2(α, δ, prim.K_0, prim.L_0)
-        prim.b = calculate_b(θ, prim.w, prim.L_0, μ_r)
+        calc_prices(prim, prim.K_0, prim.L_0)         # update prices (r, w) and b
+
+        println("-----------------------------------------------------------------------")
+        @printf " At n=%d, new K_0 = %.5f and L_0 = %.5f, K_1 = %.5f and L_1 = %.5f\n" n prim.K_0 prim.L_0 K_1 L_1
+        println("-----------------------------------------------------------------------")
 
         converged = 0
     end
-
-
-    println("-----------------------------------------------------------------------")
-    @printf " At n=%d, new K_0 = %.5f and L_0 = %.5f, K_1 = %.5f and L_1 = %.5f\n" n prim.K_0 prim.L_0 K_1 L_1
-    println("-----------------------------------------------------------------------")
-
     converged  # return convergence flag
+end
 
+# summarize_results: This function summarizes the results from solving the model
+function summarize_results(prim::Primitives, res::Results)
+    @unpack K_0, L_0 = prim
+
+    calc_prices(prim, K_0, L_0)             # calculate prices
+    welfare = calc_welfare(prim, res)       # calculate welfare
+    cv_wealth = calc_wealth_var(prim, res)  # calculate coefficient of variation for wealth
+
+    println("-----------------------------------------------------------------------")
+    @printf " Model Algorithm Converged\n"
+    println("-----------------------------------------------------------------------")
+    @printf " K       = %.5f\n" K_0
+    @printf " L       = %.5f\n" L_0
+    @printf " w       = %.5f\n" prim.w
+    @printf " r       = %.5f\n" prim.r
+    @printf " b       = %.5f\n" prim.b
+    @printf " welfare = %.5f\n" welfare
+    println("-----------------------------------------------------------------------")
 end
 
 
 # solve_model: This function is a wrapper that calls each step of the algorithm
 # to solve the Conesa-Krueger model.
-function solve_model(K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.11,
-    z_h_0::Float64 = 3.0, z_l_0::Float64 = 0.5, γ_0::Float42 = 0.42)
+function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.11,
+    z_h_0::Float64 = 3.0, z_l_0::Float64 = 0.5, γ_0::Float64 = 0.42)
 
     converged = 0    # convergence flag
     n = 0            # counter for iterations
+    prim = initialize_prims(K_input = K_0, L_input = L_0, θ_input = θ_0, z_h = z_h_0, z_l = z_l_0, γ_input = γ_0)  # initialize benchmark prims
+    res = initialize_results(prim)                          # initialize results structs
+    calc_prices(prim, K_0, L_0)                             # calculate prices (r, w) and b
 
-    prim_bm = initialize_prims(K_input = K_0, L_input = L_0, θ_input = θ_0, z_h = z_h_0, z_l = z_l_0, γ_input = γ_0)  # initialize benchmark prims
-    res_bm = initialize_results(prim_bm)
-
-    prim_bm.w = F_1(prim_bm.α, K_0, L_0)                            # calculate wage
-    prim_bm.r = F_2(prim_bm.α, prim_bm.δ, K_0, L_0)                 # calculate interest rate
-    prim_bm.b = calculate_b(prim_bm.θ, prim_bm.w, L_0, prim_bm.μ_r) # calculate benefit amount
-
-    while converged == 0                                          # until we reach convergence
-        n+= 1                                                     # update iteration counter
-        v_backward_iterate(prim_bm, res_bm)                       # backward iterate to get policy functions for each age
-        solve_ψ(prim_bm, res_bm)                                  # shoot forward to get stationary distribution
-        converged = check_market_clearing(prim_bm, res_bm, n)     # check market clearing condition for convergence
+    while converged == 0                                    # until we reach convergence
+        n+= 1                                               # update iteration counter
+        v_backward_iterate(prim, res)                       # backward iterate to get policy functions for each age
+        solve_ψ(prim, res)                                  # shoot forward to get stationary distribution
+        converged = check_market_clearing(prim, res, n)     # check market clearing condition for convergence
     end
+
+    summarize_results(prim, res)
 end
