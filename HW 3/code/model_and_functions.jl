@@ -475,14 +475,41 @@ end
 
 # calc_wealth_var: This function calculates the coefficient of variation for the
 # wealth distribution
-function calc_wealth_var(prim, res)
-    # figure out how to do this
+function calc_wealth_var(prim::Primitives, res::Results)
+    @unpack age_retire, a_grid, b, w, r, na, nz, N, e, θ = prim
+    @unpack lab_func, ψ = res
+    wealth = zeros(na * nz, N) # initialize wealth grid
+
+    for age in 1:N                                      # loop through age, asset, z state
+        for (a_index, a_val) in enumerate(a_grid)
+            for (z_index, z_val) in enumerate(z)
+                w_index = a_index + na*(z_index - 1)    # get row index in wealth matrix
+                if age >= age_retire                    # wealth for retiree: asset plus benefits
+                    w[w_index, age] = a_val * (1+r) + b
+                else
+                    e_t = e[age, z_index]                           # get e (productivity) given age and z
+                    val_index = worker_val_index(z_index, age, nz)  # get index for lab function
+                    l_t = lab_func[a_index, val_index]              # get labor supply
+                    income = w * (1-θ) * e_today * l_t              # income
+                    w[w_index, age] = a_val * (1+r) + income        # wealth for worker: asset plus income
+                end
+            end
+        end
+    end
+
+    mean_wealth = 0.0                               # initialize mean wealth value
+    for age in 1:N                                  # loop through ages
+        mean_wealth += ψ[:, age]' * wealth[:, age]  # multiply wealth by mass and sum
+    end
+
+    std_wealth = sqrt(sum((wealth .- mean_wealth).^2)/(na*nz*N)) # sample standard deviation
+    std_wealth/mean_wealth    # return coefficient of variation
 end
 
 # check_market_clearing: This function calls a helper function to calculate the
 # aggregate K and L, checks if it falls within the tolerance value, and and if
 # not, updates the K and L values.
-function check_market_clearing(prim::Primitives, res::Results, n::Int64; λ::Float64 = 0.99, tol::Float64 = 1.0e-3)
+function check_market_clearing(prim::Primitives, res::Results, n::Int64, λ::Float64, tol::Float64)
 
     K_1, L_1 = calc_aggregate(prim, res)                 # calculate aggregate K_1, L_1 after VFT and solving for ψ
     abs_diff = abs(K_1 - prim.K_0) + abs(L_1 - prim.L_0) # calculate abs difference
@@ -518,13 +545,14 @@ function summarize_results(prim::Primitives, res::Results, n::Int64)
     println("-----------------------------------------------------------------------")
     @printf " Model Algorithm Converged\n"
     println("-----------------------------------------------------------------------")
-    @printf " K       = %.5f\n" K_0
-    @printf " L       = %.5f\n" L_0
-    @printf " w       = %.5f\n" prim.w
-    @printf " r       = %.5f\n" prim.r
-    @printf " b       = %.5f\n" prim.b
-    @printf " welfare = %.5f\n" welfare
-    @printf " iter    = %d\n" n
+    @printf " K          = %.5f\n" K_0
+    @printf " L          = %.5f\n" L_0
+    @printf " w          = %.5f\n" prim.w
+    @printf " r          = %.5f\n" prim.r
+    @printf " b          = %.5f\n" prim.b
+    @printf " welfare    = %.5f\n" welfare
+    @printf " cv(wealth) = %.5f\n" cv_wealth
+    @printf " iter       = %d\n" n
     println("-----------------------------------------------------------------------")
 end
 
@@ -532,7 +560,7 @@ end
 # solve_model: This function is a wrapper that calls each step of the algorithm
 # to solve the Conesa-Krueger model.
 function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.11,
-    z_h_0::Float64 = 3.0, γ_0::Float64 = 0.42)
+    z_h_0::Float64 = 3.0, γ_0::Float64 = 0.42, λ::Float64 = 0.99, tol::Float64 = 1.0e-3)
 
     converged = 0    # convergence flag
     n = 0            # counter for iterations
@@ -540,13 +568,13 @@ function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.
     res = initialize_results(prim)                          # initialize results structs
     calc_prices(prim, K_0, L_0)                             # calculate prices (r, w) and b
 
-    while converged == 0                                    # until we reach convergence
-        n+= 1                                               # update iteration counter
-        v_backward_iterate(prim, res)                       # backward iterate to get policy functions for each age
-        solve_ψ(prim, res)                                  # shoot forward to get stationary distribution
-        converged = check_market_clearing(prim, res, n)     # check market clearing condition for convergence
+    while converged == 0                                         # until we reach convergence
+        n+= 1                                                    # update iteration counter
+        v_backward_iterate(prim, res)                            # backward iterate to get policy functions for each age
+        solve_ψ(prim, res)                                       # shoot forward to get stationary distribution
+        converged = check_market_clearing(prim, res, n, λ, tol)  # check market clearing condition for convergence
     end
 
-    summarize_results(prim, res, n)
-    prim, res # return results and prims for debugging/checking
+    summarize_results(prim, res, n)  # print results
+    prim, res                        # return results and prims for debugging/checking
 end

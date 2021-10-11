@@ -37,11 +37,20 @@ solve_ψ(prim, res)
 #  (3) test benchmark model and different experiments
 # ------------------------------------------------------------------------ #
 
-@time p, r = solve_model()     # (3a) test benchmark model
-@time solve_model(θ_0 = 0.0)   # (3b) experiment 1: θ = 0 i.e. no social insurance
+# (3a) test benchmark model, guess K_0, L_0 close to steady state for quick convergence
+@time p0, r0 = solve_model()
 
-@time solve_model(z_h_0 = 0.5)            # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity
-@time solve_model(z_h_0 = 0.5, θ_0 = 0.0) # (3d) experiment 3: z_h = z_l = 0.5 + θ = 0
+# (3b) experiment 1: θ = 0 i.e. no social insurance, same K_0, L_0 guess as above
+@time p1, r1 = solve_model(θ_0 = 0.0)
 
-@time solve_model(γ_0 = 1.0)              # (3e) experiment 4: γ = 1 i.e labor supply is exogenous
-@time solve_model(γ_0 = 1.0, θ_0 = 0.0)   # (3f) experiment 4: γ = 1 + θ = 0
+# (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity, guess K_0, L_0 close to steady state for quick convergence
+@time p2, r2 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, λ = 0.4)
+
+# (3d) experiment 3: z_h = z_l = 0.5 + θ = 0, same guess as (3c) for K_0, L_0
+@time p3, r3 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, θ_0 = 0.0)
+
+# (3e) experiment 4: γ = 1 i.e labor supply is exogenous
+@time p4, r4 = solve_model(γ_0 = 1.0)
+
+# (3f) experiment 4: γ = 1 + θ = 0
+@time solve_model(γ_0 = 1.0, θ_0 = 0.0)
