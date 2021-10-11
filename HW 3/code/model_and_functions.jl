@@ -460,15 +460,14 @@ function calc_welfare(prim::Primitives, res::Results)
     welfare = 0.0                   # initialize welfare
     for age in 1:N                  # loop through all ages
         if age < age_retire
-            val_index_h = worker_val_index(1, age, nz)  # get indices for val func for high prod
-            val_index_l = worker_val_index(2, age, nz)  # get indices for val func for low prod
-
-            welfare += ψ[1:na, age]' * val_func[:, val_index_h] # val func multiplied by stationary dist for high prod
-            welfare += ψ[na+1:nz*na, age]' * val_func[:, val_index_l] # val func multiplied by stationary dist for low prod
+            v_h = val_func[:, worker_val_index(1, age, nz)]  # get val func for high prod
+            v_l = val_func[:, worker_val_index(2, age, nz)]  # get val func for low prod
+            welfare += ψ[1:na, age][isfinite.(v_h)]' * v_h[isfinite.(v_h)]       # val func multiplied by stationary dist for high prod
+            welfare += ψ[na+1:nz*na, age][isfinite.(v_l)]' * v_l[isfinite.(v_l)] # val func multiplied by stationary dist for low prod
         else
-            val_index = retiree_val_index(age_retire, nz, age)
-            welfare += ψ[1:na, age]' * val_func[:, val_index]
-            welfare += ψ[na+1:nz*na, age]' * val_func[:, val_index]
+            v = val_func[:, retiree_val_index(age_retire, nz, age)] # follow similar process as above with retiree
+            welfare += ψ[1:na, age][isfinite.(v)]' * v[isfinite.(v)]
+            welfare += ψ[na+1:nz*na, age][isfinite.(v)]' * v[isfinite.(v)]
         end
     end
     welfare
@@ -509,7 +508,7 @@ function check_market_clearing(prim::Primitives, res::Results, n::Int64; λ::Flo
 end
 
 # summarize_results: This function summarizes the results from solving the model
-function summarize_results(prim::Primitives, res::Results)
+function summarize_results(prim::Primitives, res::Results, n::Int64)
     @unpack K_0, L_0 = prim
 
     calc_prices(prim, K_0, L_0)             # calculate prices
@@ -525,6 +524,7 @@ function summarize_results(prim::Primitives, res::Results)
     @printf " r       = %.5f\n" prim.r
     @printf " b       = %.5f\n" prim.b
     @printf " welfare = %.5f\n" welfare
+    @printf " iter    = %d\n" n
     println("-----------------------------------------------------------------------")
 end
 
@@ -532,11 +532,11 @@ end
 # solve_model: This function is a wrapper that calls each step of the algorithm
 # to solve the Conesa-Krueger model.
 function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.11,
-    z_h_0::Float64 = 3.0, z_l_0::Float64 = 0.5, γ_0::Float64 = 0.42)
+    z_h_0::Float64 = 3.0, γ_0::Float64 = 0.42)
 
     converged = 0    # convergence flag
     n = 0            # counter for iterations
-    prim = initialize_prims(K_input = K_0, L_input = L_0, θ_input = θ_0, z_h = z_h_0, z_l = z_l_0, γ_input = γ_0)  # initialize benchmark prims
+    prim = initialize_prims(K_input = K_0, L_input = L_0, θ_input = θ_0, z_h = z_h_0, γ_input = γ_0)  # initialize benchmark prims
     res = initialize_results(prim)                          # initialize results structs
     calc_prices(prim, K_0, L_0)                             # calculate prices (r, w) and b
 
@@ -547,5 +547,6 @@ function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.
         converged = check_market_clearing(prim, res, n)     # check market clearing condition for convergence
     end
 
-    summarize_results(prim, res)
+    summarize_results(prim, res, n)
+    prim, res # return results and prims for debugging/checking
 end

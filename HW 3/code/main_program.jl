@@ -37,8 +37,7 @@ solve_ψ(prim, res)
 #  (3) test benchmark model and different experiments
 # ------------------------------------------------------------------------ #
 
-# want to converge to K = 3.35780, L = 0.34327, w = 1.45455, r = 2.36442, b = 0.22513
-@time solve_model()            # (3a) test benchmark model
+@time p, r = solve_model()     # (3a) test benchmark model
 @time solve_model(θ_0 = 0.0)   # (3b) experiment 1: θ = 0 i.e. no social insurance
 
 @time solve_model(z_h_0 = 0.5)            # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity
