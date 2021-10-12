@@ -1,15 +1,15 @@
 # Author: Katherine Kwok
-# Date: Sept 28, 2021
+# Date: October 11, 2021
 
 # This file contains the code for Problem Set 3, where we want to want to evaluate
 # the value of the Social Security program. The program is broken down into the
 # following steps:
 #
-#      (1) Solve the dynamic programming problem for individuals at different ages
-#          (where if age >= 46, agent is retired; working if not)
-#      (2) Solve for the steady-state distribution of agents over age, productivity
-#          and asset holdings.
-#      (3) Test counterfactuals
+#      exercise(1) Solve the dynamic programming problem for individuals at different ages
+#                  (where if age >= 46, agent is retired; working if not)
+#      exercise(2) Solve for the steady-state distribution of agents over age, productivity
+#                  and asset holdings.
+#      exercise(3) Test counterfactuals
 
 
 # ---------------------------------------------------------------------------- #
@@ -476,7 +476,7 @@ end
 # calc_wealth_var: This function calculates the coefficient of variation for the
 # wealth distribution
 function calc_wealth_var(prim::Primitives, res::Results)
-    @unpack age_retire, a_grid, b, w, r, na, nz, N, e, θ = prim
+    @unpack age_retire, a_grid, b, w, r, na, nz, N, e, θ, z = prim
     @unpack lab_func, ψ = res
     wealth = zeros(na * nz, N) # initialize wealth grid
 
@@ -485,13 +485,13 @@ function calc_wealth_var(prim::Primitives, res::Results)
             for (z_index, z_val) in enumerate(z)
                 w_index = a_index + na*(z_index - 1)    # get row index in wealth matrix
                 if age >= age_retire                    # wealth for retiree: asset plus benefits
-                    w[w_index, age] = a_val * (1+r) + b
+                    wealth[w_index, age] = a_val * (1+r) + b
                 else
                     e_t = e[age, z_index]                           # get e (productivity) given age and z
                     val_index = worker_val_index(z_index, age, nz)  # get index for lab function
                     l_t = lab_func[a_index, val_index]              # get labor supply
-                    income = w * (1-θ) * e_today * l_t              # income
-                    w[w_index, age] = a_val * (1+r) + income        # wealth for worker: asset plus income
+                    income = w * (1-θ) * e_t * l_t                  # income
+                    wealth[w_index, age] = a_val * (1+r) + income   # wealth for worker: asset plus income
                 end
             end
         end
@@ -499,11 +499,14 @@ function calc_wealth_var(prim::Primitives, res::Results)
 
     mean_wealth = 0.0                               # initialize mean wealth value
     for age in 1:N                                  # loop through ages
-        mean_wealth += ψ[:, age]' * wealth[:, age]  # multiply wealth by mass and sum
+        mean_wealth += ψ[:, age]' * wealth[:, age]  # get dot product of mass and wealth by age
     end
-
-    std_wealth = sqrt(sum((wealth .- mean_wealth).^2)/(na*nz*N)) # sample standard deviation
-    std_wealth/mean_wealth    # return coefficient of variation
+    var_wealth = 0.0                                                     # initialize variance value
+    for age in 1:N                                                       # loop through ages
+        var_wealth += ψ[:, age]' * ((wealth[:, age] .- mean_wealth).^2)  # get dot product of mass and squared error by age
+    end
+    std_wealth = sqrt(var_wealth) # standard deviation
+    std_wealth/mean_wealth        # return coefficient of variation
 end
 
 # check_market_clearing: This function calls a helper function to calculate the
@@ -562,9 +565,10 @@ end
 function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.11,
     z_h_0::Float64 = 3.0, γ_0::Float64 = 0.42, λ::Float64 = 0.99, tol::Float64 = 1.0e-3)
 
-    converged = 0    # convergence flag
-    n = 0            # counter for iterations
-    prim = initialize_prims(K_input = K_0, L_input = L_0, θ_input = θ_0, z_h = z_h_0, γ_input = γ_0)  # initialize benchmark prims
+    converged = 0                                           # convergence flag
+    n = 0                                                   # counter for iterations
+    prim = initialize_prims(K_input = K_0, L_input = L_0,
+                θ_input = θ_0, z_h = z_h_0, γ_input = γ_0)  # initialize benchmark prims
     res = initialize_results(prim)                          # initialize results structs
     calc_prices(prim, K_0, L_0)                             # calculate prices (r, w) and b
 
