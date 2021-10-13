@@ -38,7 +38,7 @@ solve_ψ(prim, res)
 #  (3) test benchmark model and different experiments
 # ------------------------------------------------------------------------ #
 
-# (3a) test benchmark model, guess K_0, L_0 close to steady state for quick convergence
+# (3a) experiment 0: test benchmark model, guess K_0, L_0 close to steady state for quick convergence
 @time p0, r0, w0, cv0 = solve_model()
 
 # (3b) experiment 1: θ = 0 i.e. no social insurance, same K_0, L_0 guess as above
