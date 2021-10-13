@@ -16,6 +16,7 @@
 # ------------------------------------------------------------------------ #
 
 using Distributed, SharedArrays                # load package for running julia in parallel
+using CSV, DataFrames                          # load packages for exporting data to csv
 using Parameters, Plots, Printf, LinearAlgebra # load standard packages
 include("model_and_functions.jl")              # import all functions and strucs
 
@@ -38,19 +39,22 @@ solve_ψ(prim, res)
 # ------------------------------------------------------------------------ #
 
 # (3a) test benchmark model, guess K_0, L_0 close to steady state for quick convergence
-@time p0, r0 = solve_model()
+@time p0, r0, w0, cv0 = solve_model()
 
 # (3b) experiment 1: θ = 0 i.e. no social insurance, same K_0, L_0 guess as above
-@time p1, r1 = solve_model(θ_0 = 0.0)
+@time p1, r1, w1, cv1 = solve_model(θ_0 = 0.0)
 
 # (3c) experiment 2: z_h = z_l = 0.5 i.e. no idiosyncratic productivity, guess K_0, L_0 close to steady state for quick convergence
-@time p2, r2 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, λ = 0.3, tol = 1.0e-2)
+@time p2, r2, w2, cv2 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, λ = 0.3, tol = 1.0e-2)
 
 # (3d) experiment 3: z_h = z_l = 0.5 + θ = 0, same guess as (3c) for K_0, L_0
-@time p3, r3 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, θ_0 = 0.0,  λ = 0.3, tol = 1.0e-2)
+@time p3, r3, w3, cv3 = solve_model(K_0 = 1.0, L_0 = 0.1, z_h_0 = 0.5, θ_0 = 0.0,  λ = 0.3, tol = 1.0e-2)
 
 # (3e) experiment 4: γ = 1 i.e labor supply is exogenous
-@time p4, r4 = solve_model(γ_0 = 1.0)
+@time p4, r4, w4, cv4 = solve_model(γ_0 = 1.0)
 
 # (3f) experiment 4: γ = 1 + θ = 0
-@time solve_model(γ_0 = 1.0, θ_0 = 0.0)
+@time p5, r5, w5, cv5 = solve_model(γ_0 = 1.0, θ_0 = 0.0)
+
+# export output into excel
+export_results([p0, p1, p2, p3, p4, p5], [w0, w1, w2, w3, w4, w5], [cv0, cv1, cv2, cv3, cv4, cv5])

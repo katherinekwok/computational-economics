@@ -308,7 +308,8 @@ function plot_ex_1(prim::Primitives, res::Results)
 
     # plot value function for age 50
     index_age_50 = retiree_val_index(age_retire, nz, 50)           # mapping to index in val func
-    Plots.plot(a_grid, val_func[:, index_age_50], label = "", title = "Value Function for Retired Agent at 50")
+    Plots.plot(a_grid, val_func[:, index_age_50], label = "", title = "Value Function for Retired Agent at 50",
+    ylabel = "Value Function", xlabel = "Asset Level Today")
     Plots.savefig("output/age_50_value_func.png")
 
     # plot policy function for age 20
@@ -316,13 +317,15 @@ function plot_ex_1(prim::Primitives, res::Results)
     index_age_20_l = worker_val_index(2, 20, nz)
     Plots.plot(a_grid, pol_func[:, index_age_20_h] .- a_grid, label = "High productivity")
     Plots.plot!(a_grid, pol_func[:, index_age_20_l] .- a_grid, label = "Low productivity",
-    title = "Savings Decisions for Worker at Age 20", legend = :topright, xlims = [0, 75], ylims = [-0.2, 1.5])
+    title = "Savings Decisions for Worker at Age 20", legend = :topright, xlims = [0, 75], ylims = [-0.2, 1.5],
+    ylabel = "Savings", xlabel = "Asset Level Today", xticks = 0:5:75)
     Plots.savefig("output/age_20_savings.png")
 
     # plot labor supply for age 20
     Plots.plot(a_grid, lab_func[:, index_age_20_h], label = "High productivity")
     Plots.plot!(a_grid, lab_func[:, index_age_20_l], label = "Low productivity",
-    title = "Labor Supply for Worker at Age 20", legend = :topright)
+    title = "Labor Supply for Worker at Age 20", legend = :topright,
+    ylabel = "Labor Supply", xlabel = "Asset Level Today")
     Plots.savefig("output/age_20_labor.png")
 
 end
@@ -538,7 +541,7 @@ function check_market_clearing(prim::Primitives, res::Results, n::Int64, λ::Flo
 end
 
 # summarize_results: This function summarizes the results from solving the model
-function summarize_results(prim::Primitives, res::Results, n::Int64)
+function summarize_results(prim::Primitives, res::Results, n::Int64; λ::Float64 = 0.99)
     @unpack K_0, L_0 = prim
 
     calc_prices(prim, K_0, L_0)             # calculate prices
@@ -557,6 +560,8 @@ function summarize_results(prim::Primitives, res::Results, n::Int64)
     @printf " cv(wealth) = %.5f\n" cv_wealth
     @printf " iter       = %d\n" n
     println("-----------------------------------------------------------------------")
+
+    welfare, cv_wealth
 end
 
 
@@ -579,6 +584,25 @@ function solve_model(;K_0::Float64 = 3.3, L_0::Float64 = 0.3, θ_0::Float64 = 0.
         converged = check_market_clearing(prim, res, n, λ, tol)  # check market clearing condition for convergence
     end
 
-    summarize_results(prim, res, n)  # print results
-    prim, res                        # return results and prims for debugging/checking
+    welf, cv_wealth = summarize_results(prim, res, n)  # print results
+    prim, res, welf, cv_wealth                         # return results and prims for debugging/checking
+end
+
+# export_results: This function exports the key results into a csv
+function export_results(p_list::Array{Primitives, 1}, w_list::Array{Float64, 1}, cv_list::Array{Float64, 1})
+
+    # format results into data frame
+    df = DataFrame(Type = ["Benchmark", "Benchmark + No SS", "No Risk", "No Risk + No SS", "Exog LS", "Exog LS + No SS"],
+                   theta = [p_list[1].θ, p_list[2].θ, p_list[3].θ, p_list[4].θ, p_list[5].θ, p_list[6].θ],
+                   z_h = [p_list[1].z[1], p_list[2].z[1], p_list[3].z[1], p_list[4].z[1], p_list[5].z[1], p_list[6].z[1]],
+                   gamma = [p_list[1].γ, p_list[2].γ, p_list[3].γ, p_list[4].γ, p_list[5].γ, p_list[6].γ],
+                   K = [p_list[1].K_0, p_list[2].K_0, p_list[3].K_0, p_list[4].K_0, p_list[5].K_0, p_list[6].K_0],
+                   L = [p_list[1].L_0, p_list[2].L_0, p_list[3].L_0, p_list[4].L_0, p_list[5].L_0, p_list[6].L_0],
+                   w = [p_list[1].w, p_list[2].w, p_list[3].w, p_list[4].w, p_list[5].w, p_list[6].w],
+                   r = [p_list[1].r, p_list[2].r, p_list[3].r, p_list[4].r, p_list[5].r, p_list[6].r],
+                   b = [p_list[1].b, p_list[2].b, p_list[3].b, p_list[4].b, p_list[5].b, p_list[6].b],
+                   welfare = w_list,
+                   cv_wealth = cv_list)
+
+    CSV.write("output/exercise_3_results.csv", df)
 end
