@@ -7,10 +7,17 @@
 # The code below computes the STEADY STATES (from Problem Set 3), and is
 # divided into the following sections:
 #
-#   (0) set up strucs and functions to initialize
-#   (1) functions for solving dynamic programming problem
-#   (2) functions for solving for stationary distribution
-#   (3) functions for solving for equilibrium aggregate K, L
+#   //(0)\\ set up strucs and functions to initialize
+#
+#   //(1)\\ functions for solving dynamic programming problem
+#
+#   NOTE: This code in this portion is now modified from PS3 to allow for different
+#         versions of backward iteration, depending on whether we are in steady
+#         state or on the transition path.
+#
+#   //(2)\\ functions for solving for stationary distribution
+#
+#   //(3)\\ functions for solving for equilibrium aggregate K, L
 
 # ---------------------------------------------------------------------------- #
 #  (0) Set up strucs and functions to initialize
@@ -180,7 +187,12 @@ function utility_retiree(c::Float64, σ::Float64, γ::Float64)
 end
 
 # bellman_retiree: this function encodes the Bellman function for the retired
-function bellman_retiree(prim::Primitives, res::Results, age::Int64)
+#
+# NOTE: This function is different from the problem set 3 function, because it
+# allows us to solve the transition path value function iteration. The default
+# is set to the steady state version.
+#
+function bellman_retiree(prim::Primitives, res::Results, age::Int64; steady_state::Bool = true, res_next::Results = res)
     @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β = prim
     @unpack val_func = res
 
@@ -189,7 +201,7 @@ function bellman_retiree(prim::Primitives, res::Results, age::Int64)
     if age == N # if age == N, initialize last year of life value function
         for (a_index, a_today) in enumerate(a_grid)
             c = (1 + r) * a_today + b                                   # consumption in last year of life (a' = 0)
-            res.val_func[a_index, val_index] = utility_retiree(c, σ, γ) # value function for retiree given utility (v_next = 0 for last period of life)
+            res.val_func[a_index, val_index] = utility_retiree(c, σ, γ) # value function for retiree given utility (v_next = 0 for last age period of life)
         end
     else # if not at end of life, compute value funaction for normal retiree
         choice_lower = 1                                                # for exploiting monotonicity of policy function
@@ -199,7 +211,13 @@ function bellman_retiree(prim::Primitives, res::Results, age::Int64)
 
             @sync @distributed for ap_index in choice_lower:na          # loop through asset levels tomorrow
                 a_tomorrow = a_grid[ap_index]                           # get a tomorrow
-                v_next_val = res.val_func[ap_index, val_index+1]        # get next period val func given a'
+
+                if steady_state == true                                    # NOTE: if in steady state
+                    v_next_val = res.val_func[ap_index, val_index+1]       # get next age period val func given a'
+                else                                                       # NOTE: if on transition path
+                    v_next_val = res_next.val_func[ap_index, val_index+1]  # get next age and time period val func given a'
+                end
+
                 c = (1 + r) * a_today + b - a_tomorrow                  # consumption for retiree
 
                 if c > 0                                                    # check for positivity of c
@@ -240,7 +258,12 @@ function labor_supply(γ::Float64, θ::Float64, e_today::Float64, w::Float64,
 end
 
 # bellman_worker: this function encodes the Bellman function for workers
-function bellman_worker(prim::Primitives, res::Results, age::Int64)
+#
+# NOTE: This function is different from the problem set 3 function, because it
+# allows us to solve the transition path value function iteration. The default
+# is set to the steady state version.
+#
+function bellman_worker(prim::Primitives, res::Results, age::Int64; steady_state::Bool = true, res_next::Results = res)
     @unpack N, na, a_grid, nz, r, b, σ, γ, age_retire, β, z, θ, e, z_matrix, w = prim
     @unpack val_func = res
 
@@ -261,12 +284,24 @@ function bellman_worker(prim::Primitives, res::Results, age::Int64)
                 c = w * (1-θ) * e_today * l + (1 + r) * a_today - a_tomorrow     # consumption for worker
 
                 if c > 0 && l >= 0 && l <= 1                            # check for positivity of c and constraint on l: 0 <= l <= 1
-                    if age == age_retire -1                                     # if age == 45 (retired next period), then no need for transition probs
-                        v_next_val = res.val_func[ap_index, age * nz + 1]       # get next period val func (just scalar) given a_tomorrow
+                    if age == age_retire -1                                     # if age == 45 (retired next age period), then no need for transition probs
+
+                        if steady_state == true                                    # NOTE: if in steady state
+                            v_next_val = res.val_func[ap_index, age * nz + 1]      #       get next age period val func (just scalar) given a_tomorrow
+                        else                                                       # NOTE: if on transition path
+                            v_next_val = res_next.val_func[ap_index, age * nz + 1] #       get next age and period val func
+                        end
+
                         v_today = utility_worker(c, l, σ, γ) + β * v_next_val   # value function for worker
 
-                    else                                                                  # else, need transition probs
-                        v_next_val = res.val_func[ap_index, (age+1)*nz - 1:(age+1)*nz]    # get next period val func (vector including high and low prod) given a_tomorrow
+                    else                                                                  # else if just normal worker, need transition probs
+
+                        if steady_state == true                                                 # NOTE: if in steady state
+                            v_next_val = res.val_func[ap_index, (age+1)*nz - 1:(age+1)*nz]      # get next age period val func (vector including high and low prod) given a_tomorrow
+                        else                                                                    # NOTE: if on transition path
+                            v_next_val = res_next.val_func[ap_index, (age+1)*nz - 1:(age+1)*nz]    # get next age and time period val func
+                        end
+
                         v_today = utility_worker(c, l, σ, γ) + β * z_prob' * v_next_val   # value function for worker with transition probs
                     end
 
@@ -284,50 +319,30 @@ function bellman_worker(prim::Primitives, res::Results, age::Int64)
 end
 
 # v_backward_iterate: is the value function iteration loop, which calls the Bellman
-# function from end of life until the beginning (i.e. iterates backward)
-function v_backward_iterate(prim::Primitives, res::Results)
+#                     function from end of life until the beginning (i.e. iterates backward)
+#
+# NOTE: This function is different from the problem set 3 function, because it
+# allows us to solve the transition path value function iteration. The default
+# is set to the steady state version.
+#
+function v_backward_iterate(prim::Primitives, res::Results; steady_state::Bool = true, res_next_input::Results = res)
     @unpack N, age_retire = prim
 
     for age in N:-1:1
         if age >= age_retire                   # if between retirement age and end of life
-            bellman_retiree(prim, res, age)    # call Bellman for retiree
+            if steady_state == true                 # do different backward iteration for steady state vs. transition
+                bellman_retiree(prim, res, age;)    # call Bellman for retiree
+            else
+                bellman_retiree(prim, res, age; steady_state = false, res_next = res_next_input)
+            end
         else                                   # else, agent is still worker
-            bellman_worker(prim, res, age)     # call Bellman for worker
+            if steady_state == true                 # do different backward iteration for steady state vs. transition
+                bellman_worker(prim, res, age;)     # call Bellman for worker
+            else
+                bellman_worker(prim, res, age; steady_state = false, res_next = res_next_input)
+            end
         end
     end
-    println("-----------------------------------------------------------------------")
-    println("              Value function interation is complete.")
-    println("-----------------------------------------------------------------------")
-end
-
-
-# plot_ex_1: This function plots all the necessary graphs for exercise 1
-function plot_ex_1(prim::Primitives, res::Results)
-    @unpack val_func, pol_func, lab_func = res
-    @unpack a_grid, nz, age_retire = prim
-
-    # plot value function for age 50
-    index_age_50 = retiree_val_index(age_retire, nz, 50)           # mapping to index in val func
-    Plots.plot(a_grid, val_func[:, index_age_50], label = "", title = "Value Function for Retired Agent at 50",
-    ylabel = "Value Function", xlabel = "Asset Level Today")
-    Plots.savefig("output/age_50_value_func.png")
-
-    # plot policy function for age 20
-    index_age_20_h = worker_val_index(1, 20, nz)
-    index_age_20_l = worker_val_index(2, 20, nz)
-    Plots.plot(a_grid, pol_func[:, index_age_20_h] .- a_grid, label = "High productivity")
-    Plots.plot!(a_grid, pol_func[:, index_age_20_l] .- a_grid, label = "Low productivity",
-    title = "Savings Decisions for Worker at Age 20", legend = :topright, xlims = [0, 75], ylims = [-0.2, 1.5],
-    ylabel = "Savings", xlabel = "Asset Level Today", xticks = 0:5:75)
-    Plots.savefig("output/age_20_savings.png")
-
-    # plot labor supply for age 20
-    Plots.plot(a_grid, lab_func[:, index_age_20_h], label = "High productivity")
-    Plots.plot!(a_grid, lab_func[:, index_age_20_l], label = "Low productivity",
-    title = "Labor Supply for Worker at Age 20", legend = :topright,
-    ylabel = "Labor Supply", xlabel = "Asset Level Today")
-    Plots.savefig("output/age_20_labor.png")
-
 end
 
 # ---------------------------------------------------------------------------- #
@@ -335,7 +350,7 @@ end
 # ---------------------------------------------------------------------------- #
 
 # initialize_ψ: This function initiates the staionary distribution for the first
-# period of life, using the ergodic distribution (productivity drawn at birth)
+# age period of life, using the ergodic distribution (productivity drawn at birth)
 function initialize_ψ(prim::Primitives, res::Results)
     @unpack na, z_initial_prob, nz, μ = prim
     res.ψ[1, 1] = prim.z_initial_prob[1]  * μ[1]      # distribution of high prod people
@@ -345,21 +360,25 @@ end
 
 # make_trans_matrix: function that creates the transition matrix that maps from
 # the current state (z, a) to future state (z', a') for a given age j.
-function make_trans_matrix(prim::Primitives, res::Results, age::Int64)
+#
+# NOTE: This is a modified version of the make_trans_matrix function in PS3, as
+# we need to make the transition matrix differently depending on whether we are
+# in the steady state or on the transition path.
+#
+function make_trans_matrix(prim::Primitives, pol_func::Array{Float64, 2}, age::Int64)
     @unpack a_grid, na, nz, z_matrix, z, age_retire = prim  # unpack model primitives
-    @unpack pol_func = res                                  # unpack policy function from value function iteration
     trans_mat = zeros(nz*na, nz*na)                         # initiate transition matrix (zeros)
 
     for (z_index, z_today) in enumerate(z)                  # loop through current productivity states
         for (a_index, a_today) in enumerate(a_grid)         # loop through current asset grid
 
-            row_index = a_index + na*(z_index - 1)        # create mapping from current a, z indices to big trans matrix ROW index (today's state)
+            row_index = a_index + na*(z_index - 1)          # create mapping from current a, z indices to big trans matrix ROW index (today's state)
             if age >= age_retire
                 val_index = retiree_val_index(age_retire, nz, age)  # get asset index for retireee
             else
                 val_index = worker_val_index(z_index, age, nz)      # get asset index for worker
             end
-            a_choice = pol_func[a_index, val_index]                 # get asset choice
+            a_choice = pol_func[a_index, val_index]               # get asset choice for given age
 
             for (zp_index, z_tomorrow) in enumerate(z)            # loop through future productivity states
                 for (ap_index, a_tomorrow) in enumerate(a_grid)   # loop through future asset states
@@ -376,18 +395,18 @@ function make_trans_matrix(prim::Primitives, res::Results, age::Int64)
 end
 
 
-# solve_ψ: This function iterates from age 1 to N-1 (one period before end of life)
+# solve_ψ: This function iterates from age 1 to N-1 (one age period before end of life)
 # to find the stationary distribution for each age. The distribution tells us where
-# a person will be in the distribution in the next period, given their state in
-# the current period.
+# a person will be in the distribution in the next age period, given their state in
+# the current age period.
 function solve_ψ(prim::Primitives, res::Results)
     @unpack N, μ, n = prim
 
-    initialize_ψ(prim, res)                              # initialize ψ for first period of life (age = 1)
+    initialize_ψ(prim, res)                              # initialize ψ for first age period of life (age = 1)
 
     for age in 1:N-1
-        trans_mat = make_trans_matrix(prim, res, age)    # make transition matrix for given age
-        res.ψ[:, age + 1] = trans_mat' * res.ψ[:, age] * (1/(1+n))   # get distribution for next period
+        trans_mat = make_trans_matrix(prim, res.pol_func, age)     # make transition matrix for given age
+        res.ψ[:, age + 1] = trans_mat' * res.ψ[:, age] * (1/(1+n)) # get distribution for next age period
     end
 
 
@@ -421,9 +440,8 @@ end
 # calc_aggregate: This function calculates the aggregate K and L given the results
 # from solving for the decision rules (pol_func, lab_func) and stationary
 # distribution (ψ)
-function calc_aggregate(prim::Primitives, res::Results)
+function calc_aggregate(prim::Primitives, pol_func::Array{Float64, 2}, ψ::Array{Float64, 2}, lab_func::Array{Float64, 2})
     @unpack N, na, nz, a_grid, z, e, age_retire = prim
-    @unpack pol_func, ψ, lab_func = res
 
     agg_K = 0.0   # initiate aggregate values
     agg_L = 0.0
@@ -517,8 +535,8 @@ end
 # not, updates the K and L values.
 function check_market_clearing(prim::Primitives, res::Results, n::Int64, λ::Float64, tol::Float64)
 
-    K_1, L_1 = calc_aggregate(prim, res)                 # calculate aggregate K_1, L_1 after VFT and solving for ψ
-    abs_diff = abs(K_1 - prim.K_0) + abs(L_1 - prim.L_0) # calculate abs difference
+    K_1, L_1 = calc_aggregate(prim, res.pol_func, res.ψ, res.lab_func) # calculate aggregate K_1, L_1 after VFT and solving for ψ
+    abs_diff = abs(K_1 - prim.K_0) + abs(L_1 - prim.L_0)               # calculate abs difference
 
     if abs_diff < tol                                 # if abs diff < tolerance val, we've converged
         converged = 1                                 # update convergence flag
