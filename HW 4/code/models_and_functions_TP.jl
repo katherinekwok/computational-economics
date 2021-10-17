@@ -92,11 +92,14 @@ function shoot_backward(pt::Primitives, tp::TransitionPaths, r0::Results, rT::Re
 
         if t == TPs   # if at final transition period (T), already have steady state solved (rT)
             rt = rT
-        elseif t == 0 # else if at initial period (0), already have steady state solved (r0) (indexed at 1)
-            rt = r0
-        else          # else if somewhere in between, call v_backward_iterate to solve
+        else          # else from time period T-1 to time period 0, call v_backward_iterate to solve
             v_backward_iterate(pt, rt, steady_state = false, res_next_input = rt_next)
         end
+
+        # plot value function for age 50
+        index_age_50 = retiree_val_index(46, 2, 50)           # mapping to index in val func
+        display(plot(pt.a_grid, rt.val_func[:, index_age_50], label = "", title = "Value Function for Retired Agent at 50",ylabel = "Value Function", xlabel = "Asset Level Today"))
+
 
         tp.val_func_TP[t+1, :, :] = rt.val_func # store the val, pol, lab funcs into transition path
         tp.pol_func_TP[t+1, :, :] = rt.pol_func
@@ -122,16 +125,18 @@ end
 # distribution for each time and age period, to get the distribution for
 # the next time and age period.
 function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths, r0::Results)
-    @unpack N, n = pt # unpack N (periods of life), n (population growth rate)
+    @unpack N, n, na, z_initial_prob, nz, μ = pt # unpack paramters
 
     # NOTE: we index by t+1 by default because julia does not allow 0-based indexing
-    if t == 0 || t == 1           # if t = 0 or 1, then
+    if t == 0 || t == 1              # if t = 0 or 1, then
         tp.ψ_TP[t+1, :, :] = r0.ψ    # use steady state (θ > 0) distribution
     else
-        for age in 1:N-1          # loop through ages
+        tp.ψ_TP[t+1, 1, 1] = pt.z_initial_prob[1]  * μ[1]   # distribution of high prod people (at birth)
+        tp.ψ_TP[t+1, na+1, 1] = pt.z_initial_prob[2] * μ[1]  # distribution of low prod people (at birth)
 
+        for age in 1:N-1             # loop through ages
             # make transition matrix for given period and age
-            trans_mat = make_trans_matrix(pt, tp.pol_func_TP[t, :, :], age)
+            trans_mat = make_trans_matrix(pt, tp.pol_func_TP[t+1, :, :], age)
             # get distribution for next period and age
             tp.ψ_TP[t+2, :, age+1] = trans_mat' * tp.ψ_TP[t+1, :, age] * (1/(1+n))
         end
@@ -144,10 +149,10 @@ end
 function update_path(t::Int64, pt::Primitives, tp::TransitionPaths, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
 
     # calculate aggregate capital and labor supply in next time period
-    K_next, L_next = calc_aggregate(pt, tp.pol_func_TP[t+2, :, :], tp.ψ_TP[t+2, :, :], tp.lab_func_TP[t+2, :, :])
+    K_next, L_next = calc_aggregate(pt, tp.pol_func_TP[t+1, :, :], tp.ψ_TP[t+1, :, :], tp.lab_func_TP[t+1, :, :])
     # update the new transition paths
-    K_TP_1[t+2] = K_next
-    L_TP_1[t+2] = L_next
+    K_TP_1[t+1] = K_next
+    L_TP_1[t+1] = L_next
 
 end
 
@@ -158,16 +163,17 @@ end
 function shoot_forward(pt::Primitives, tp::TransitionPaths, r0::Results, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
     @unpack TPs = tp # unpack toilet paper :-) (i.e. transition path)
 
-    for t in 0:TPs-1                           # iterate forward from 0 to T-1
+    for t in 0:TPs-2                           # iterate forward from 0 to T-1
         solve_ψ_TP(t, pt, tp, r0)              # solve for distribution by age and time period
         update_path(t, pt, tp, K_TP_1, L_TP_1) # update transition path
 
         if t % 2 == 0 # give status update at every 2 transition periods
             println("-----------------------------------------------------------------------")
-            @printf "                Shooting forward; at period %d now \n" t
+            @printf "  Shooting forward; at period %d, K_TP_1 = %.3f, L_TP_1 = %.3f \n" t K_TP_1[t+1] L_TP_1[t+1]
             println("-----------------------------------------------------------------------")
         end
     end
+    update_path(TPs, pt, tp, K_TP_1, L_TP_1) # update transition path for last period T
 end
 
 # ---------------------------------------------------------------------------- #
@@ -176,7 +182,17 @@ end
 
 # display_progress: This function plots the new and old transition paths for
 # troubleshooting
-function display_progress()
+function display_progress(tp::TransitionPaths, K_TP_1::Array{Float64}, L_TP_1::Array{Float64},
+    p0::Primitives, pT::Primitives)
+    @unpack TPs = tp
+
+    display(plot([tp.K_TP K_TP_1 repeat([p0.K_0], TPs+1) repeat([pT.K_0], TPs+1)],
+            label = ["Old TP" "New TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Capital"))
+
+    display(plot([tp.L_TP L_TP_1 repeat([p0.L_0], TPs+1) repeat([pT.L_0], TPs+1)],
+            label = ["Old TP" "New TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Labor"))
 end
 
 
@@ -188,8 +204,8 @@ function check_convergence_TP(pt::Primitives, tp::TransitionPaths, K_TP_1::Array
     @unpack α, δ, μ_r = pt
     @unpack TPs, K_TP, L_TP, θ_TP = tp
 
-    K_diffs = abs.(K_TP_1[2:TPs-1] .- K_TP[2:TPs -1]) # calculate differences between two K transition paths
-    L_diffs = abs.(L_TP_1[2:TPs-1] .- L_TP[2:TPs -1]) # calculate differences between two L transition paths
+    K_diffs = abs.(K_TP_1 .- K_TP) # calculate differences between two K transition paths
+    L_diffs = abs.(L_TP_1 .- L_TP) # calculate differences between two L transition paths
     max_diff = maximum(K_diffs .+ L_diffs)               # get max diff of K and L combined
 
     if max_diff > tol # if max diff is above tolerance, we update
@@ -206,4 +222,7 @@ function check_convergence_TP(pt::Primitives, tp::TransitionPaths, K_TP_1::Array
         converged = 1
     end
     converged # return convergence flag
+end
+
+function check_convergence_outer()
 end
