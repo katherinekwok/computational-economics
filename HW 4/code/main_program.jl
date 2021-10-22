@@ -27,17 +27,13 @@ include("models_and_functions_TP.jl")
 tp, p0, r0, pT, rT = initialize_TP()
 
 pt = initialize_prims() # initialize mutatable struc primitives for current period (t)
-K_TP_1 = collect(range(p0.K_0, length = tp.TPs+1, stop = pT.K_0))   # intialize new K transition path
-L_TP_1 = collect(range(p0.L_0, length = tp.TPs+1, stop = pT.L_0))      # intialize new L transition path
-display_progress(tp, K_TP_1, L_TP_1, p0, pT)
-
 converged = 0
 
 while converged == 0
-    # shoot backwards from T to 0 to solve dynamic household programming
+    # shoot backwards from T-1 to 1 to solve dynamic household programming
     @time shoot_backward(pt, tp, r0, rT)
 
-    # shoot forwards from 0 to T to solve cross-sec distribution for age and time
+    # shoot forwards from 1 to T to solve cross-sec distribution for age and time
     @time shoot_forward(pt, tp, r0, K_TP_1, L_TP_1)
 
     # check progress and convergence
