@@ -61,8 +61,6 @@ end
 #                cohort from 1 to 66.
 function initialize_mu(N::Int64, n::Float64)
     μ = ones(N)    # initialize μ vector
-    μ_r = 0.0      # initialize mass of retirees
-    μ_w = 0.0      # initialize mass of workers
     μ[1] = 1       # initialize μ_1, μ_1 > 0
 
     for i in 2:N   # iterate over N-1 to get all μ values
