@@ -3,21 +3,19 @@
 
 # This file contains the code for Problem Set 4, where we solve for transition
 # paths from eliminating social security, using the Conesa-Krueger Model.
-#
-# The code below computes the STEADY STATES (from Problem Set 3), and is
+
+#    NOTE: This code in this portion is now modified from PS3 to allow for different
+#         versions of backward iteration and solving for the stationary distribution,
+#         depending on whether we are in steady state or on the transition path
+
+# The code solves components of the Conesa-Krueger model (from Problem Set 3), and is
 # divided into the following sections:
 #
-#   //(0)\\ set up strucs and functions to initialize
-#
-#   //(1)\\ functions for solving dynamic programming problem
-#
-#   NOTE: This code in this portion is now modified from PS3 to allow for different
-#         versions of backward iteration, depending on whether we are in steady
-#         state or on the transition path.
-#
-#   //(2)\\ functions for solving for stationary distribution
-#
-#   //(3)\\ functions for solving for equilibrium aggregate K, L
+#   (0) set up strucs and functions to initialize
+#   (1) functions for solving dynamic programming problem.
+#   (2) functions for solving for stationary distribution
+#   (3) functions for solving for equilibrium aggregate K, L
+
 
 # ---------------------------------------------------------------------------- #
 #  (0) Set up strucs and functions to initialize

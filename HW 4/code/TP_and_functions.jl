@@ -16,6 +16,7 @@ include("models_and_functions_SS.jl") # use functions that find steady state sol
                                       # if function referenced in this file is not defined here
                                       # then it is in the SS file
 
+##
 # ---------------------------------------------------------------------------- #
 #  (0) Set up strucs and functions to initialize
 # ---------------------------------------------------------------------------- #
@@ -67,6 +68,7 @@ function initialize_TP()
     tp, p0, r0, pT, rT # return initialized struc
 end
 
+##
 # ---------------------------------------------------------------------------- #
 #  (1) Shoot backward: Solve HH dynamic programming problem along TP backwards
 # ---------------------------------------------------------------------------- #
@@ -108,6 +110,7 @@ function shoot_backward(pt::Primitives, tp::TransitionPaths, r0::Results, rT::Re
     end
 end
 
+##
 # ---------------------------------------------------------------------------- #
 #  (2) Shoot forward: Solve cross-sec distribution and new TP forwards
 # ---------------------------------------------------------------------------- #
@@ -158,6 +161,7 @@ function shoot_forward(pt::Primitives, tp::TransitionPaths, r0::Results, K_TP_1:
     end
 end
 
+##
 # ---------------------------------------------------------------------------- #
 #  (3) Check for convergence
 # ---------------------------------------------------------------------------- #
