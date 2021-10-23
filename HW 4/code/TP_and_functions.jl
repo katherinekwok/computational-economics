@@ -1,5 +1,5 @@
 # Author: Katherine Kwok
-# Date: October 13, 2021
+# Date: October 23, 2021
 
 # This file contains the code for Problem Set 4, where we solve for transition
 # paths from eliminating social security, using the Conesa-Krueger Model.
@@ -13,9 +13,9 @@
 #   (3) functions for checking for convergence
 #   (4) functions for running the main algorithm and producing results + plots
 
-include("model_and_functions.jl") # use functions that find steady state solution
-                                      # if function referenced in this file is not defined here
-                                      # then it is in the SS file
+include("model_and_functions.jl") # use functions and structs that solve household
+                                  # dynamic programming problem and stationary
+                                  # distribution
 
 ##
 # ---------------------------------------------------------------------------- #
@@ -44,7 +44,7 @@ end
 #
 # NOTE: by default, this function initializes a transtion path for unanticipated
 #       social security shock
-function initialize_TP(p0::Primitives, pT::Primitives, TPs::Int64; date_implemented::Int64 = 1)
+function initialize_TP(p0::Primitives, pT::Primitives, TPs::Int64, date_implemented::Int64)
 
     println("-----------------------------------------------------------------------")
     @printf "          Starting Outer While Loop with %d transition periods \n" TPs
@@ -75,6 +75,13 @@ end
 # ---------------------------------------------------------------------------- #
 #  (1) Shoot backward: Solve HH dynamic programming problem along TP backwards
 # ---------------------------------------------------------------------------- #
+
+# shoot_backward: This function shoots backward along the transition path to
+# solve the household dynamic programming problem, given the aggregate K,L, and
+# the corresponding prices (r, w) and benefit level (b).
+#
+# NOTE: The pol, val, lab functions for the last period in transition is always
+#       the same as that of the steady state in which θ = 0 (no social security).
 
 function shoot_backward(pt::Primitives, tp::TransitionPaths, r0::Results, rT::Results)
     @unpack TPs = tp # unpack toilet paper :-) (i.e. transition path)
@@ -124,6 +131,7 @@ end
 # in the next age and time period. Then, we apply the transition matrix to the
 # distribution for each time and age period, to get the distribution for
 # the next time and age period.
+
 function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths)
     @unpack N, n, na, z_initial_prob, nz, μ = pt # unpack paramters
 
@@ -143,16 +151,20 @@ function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths)
 end
 
 
-# shoot_forward: This function shoots forward from 0 to T, in order to find
+# shoot_forward: This function shoots forward across the transition, in order to find
 # the cross-sec distribution from one age and time period to the next age and
 # time period. Then, we can calculate the new transition path based on the
 # the policy functions and cross-sec distributions.
+#
+# NOTE: The first period distribution is always the same as that of the steady
+#       state in which θ = 0.11 (when there is social security).
+
 function shoot_forward(pt::Primitives, tp::TransitionPaths, r0::Results, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
     @unpack TPs = tp # unpack toilet paper :-) (i.e. transition path)
 
     tp.ψ_TP[1, :, :] = r0.ψ                    # fill first period with the initial steady state dist
 
-    for t in 1:TPs-1                           # iterate forward from 0 to T-1
+    for t in 1:TPs-1                           # iterate forward from 1 to T-1
         solve_ψ_TP(t, pt, tp)                  # solve for distribution by age and time period
         update_path(t, pt, tp, K_TP_1, L_TP_1) # update aggregate K and L
 
@@ -184,7 +196,8 @@ end
 
 
 # display_progress: This function plots the new and old transition paths for
-# troubleshooting
+#                   troubleshooting. If save = true, we save the plot for
+#                   record-keeping.
 function display_progress(tp::TransitionPaths, K_TP_1::Array{Float64}, L_TP_1::Array{Float64},
     p0::Primitives, pT::Primitives, experiment::String; save::Bool = false)
     @unpack TPs = tp
@@ -213,6 +226,8 @@ end
 # check_convergence_TP: This function checks if the maximum, absolute difference
 # between K and L transition paths combined is less than the tolerance value.
 # If so, we have converged, and if not, we update the transition path and repeat.
+# This is for the inner loop.
+
 function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
     K_TP_1::Array{Float64}, L_TP_1::Array{Float64}, experiment::String;
     tol::Float64 = 1.0e-3, λ::Float64 = 0.5)
@@ -231,8 +246,8 @@ function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
         tp.K_TP = λ .* K_TP_1 .+ (1-λ) .* K_TP # adjust using λ paramter
         tp.L_TP = λ .* L_TP_1 .+ (1-λ) .* L_TP
 
-        tp.r_TP = F_1.(α, tp.K_TP, tp.L_TP)                  # transition path of r
-        tp.w_TP = F_2.(α, δ, tp.K_TP, tp.L_TP)               # transition path of w
+        tp.w_TP = F_1.(α, δ, tp.K_TP, tp.L_TP)               # transition path of w
+        tp.r_TP = F_2.(α, tp.K_TP, tp.L_TP)                  # transition path of r
         tp.b_TP = calculate_b.(θ_TP, tp.w_TP, tp.L_TP, μ_r)  # transition path of θ
 
         converged = 0    # convergence flag still 0
@@ -255,6 +270,10 @@ function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
     end
     converged # return convergence flag
 end
+
+# check_convergence_SS: This function checks if the aggregate K and L at the end
+# of the transition periods are close enough to the steady state without social
+# security. If not, we lengthen the transition periods. This is for the outer loop.
 
 function check_convergence_SS(pT::Primitives, tp::TransitionPaths, TPs::Int64, iter::Int64; tol::Float64 = 1.0e-3)
 
@@ -290,7 +309,7 @@ end
 #       is close enough to the ending steady state (no social security). If it's
 #       not close enough, the transition period is lengthened.
 
-function solve_algorithm(experiment::String, TPs::Int64)
+function solve_algorithm(experiment::String, TPs::Int64; date_imple_input::Int64 = 1)
 
     converged_outer = 0          # convergence flag for outer while loop
     iter_outer = 1               # iteration counter for outer while loop
@@ -298,7 +317,7 @@ function solve_algorithm(experiment::String, TPs::Int64)
     while converged_outer == 0   # outer loop
 
         # initialize transition path variables
-        tp = initialize_TP(p0, pT, TPs)
+        tp = initialize_TP(p0, pT, TPs, date_imple_input)
         # initialize mutatable struc primitives for current period (t)
         pt = initialize_prims()
 
@@ -327,4 +346,14 @@ function solve_algorithm(experiment::String, TPs::Int64)
     end
 
     tp, pt # return converged transition paths and other stuff
+end
+
+# summarize_results: This function takes the output from running the main algorithm
+#                    and produces plots and the consumption equivalent variations.
+
+function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitives, p0::Primitives)
+
+    # calculate consumption equivalent
+    # make plots
+
 end
