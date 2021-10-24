@@ -57,17 +57,18 @@ function initialize_TP(p0::Primitives, pT::Primitives, TPs::Int64, date_implemen
     θ_TP = vcat(repeat([p0.θ], date_implemented - 1), repeat([pT.θ], TPs - date_implemented + 1)) # transition path of θ
 
     K_TP = collect(range(p0.K_0, step = ((pT.K_0 - p0.K_0)/(TPs-1)), stop = pT.K_0)) # transition path of K
-    L_TP = collect(range(p0.L_0, step = ((pT.L_0 - p0.L_0)/(TPs-1)), stop = pT.L_0)) # transition path of L
+    L_TP = repeat([pT.L_0], TPs) # transition path of L
 
     # NOTE: the first aggregate K, L is the initial SS K, L with θ = 0.11, because
     #       at t = 1, households are still in old SS asset allocations.
 
-    r_TP = F_2.(α, δ, K_TP, L_TP)               # transition path of r using K_TP, L_TP
     w_TP = F_1.(α, K_TP, L_TP)                  # transition path of w using K_TP, L_TP
+    r_TP = F_2.(α, δ, K_TP, L_TP)               # transition path of r using K_TP, L_TP
     b_TP = calculate_b.(θ_TP, w_TP, L_TP, μ_r)  # transition path of b
 
     col_num_all = (N - age_retire + 1) + (age_retire - 1)*nz # number of indices corresponding to age + state for everyone (carry-over from pset 3 set up)
     col_num_worker = (age_retire - 1)*nz                     # number of indices corresponding to age + state for workers  (carry-over from pset 3 set up)
+
     val_func_TP = zeros(TPs, na, col_num_all)                # initial value function for all periods
     pol_func_TP = zeros(TPs, na, col_num_all)                # initial policy function for all periods
     lab_func_TP = zeros(TPs, na, col_num_worker)             # initial labor function for all periods
@@ -97,10 +98,9 @@ function shoot_backward(pt::Primitives, tp::TransitionPaths, r0::Results, rT::Re
     tp.lab_func_TP[TPs, :, :] = rT.lab_func
     rt_next = rT                                # initialize next results (contains value, pol, lab fun)
 
-    for t in TPs-1:-1:1 # iterate from T back to 0
+    for t in TPs-1:-1:1 # iterate from T-1 back to 1
 
         # set up primitives for this backward induction of household dynamic programming problem
-        # accessing using index + 1 because julia does not do 0-based indexing
         pt.θ = tp.θ_TP[t]     # θ
         pt.r = tp.r_TP[t]     # interest rate
         pt.w = tp.w_TP[t]     # wage
@@ -153,6 +153,18 @@ function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths)
         tp.ψ_TP[t+1, :, age+1] = trans_mat' * tp.ψ_TP[t, :, age] * (1/(1+n))
 
     end
+end
+
+# update_path: This function updates the transition path, by calculating the
+# aggregate capital (K) and labor supply (K)
+function update_path(t::Int64, pt::Primitives, tp::TransitionPaths, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
+    @unpack TPs = tp
+
+    # calculate aggregate capital and labor supply in next time period
+    K_next, L_next = calc_aggregate(pt, tp.pol_func_TP[t+1, :, :], tp.ψ_TP[t+1, :, :], tp.lab_func_TP[t+1, :, :])
+    # update the new transition paths
+    K_TP_1[t+1] = K_next
+    L_TP_1[t+1] = L_next
 
 end
 
@@ -187,19 +199,6 @@ end
 # ---------------------------------------------------------------------------- #
 #  (3) Check for convergence
 # ---------------------------------------------------------------------------- #
-
-# update_path: This function updates the transition path, by calculating the
-# aggregate capital (K) and labor supply (K)
-function update_path(t::Int64, pt::Primitives, tp::TransitionPaths, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
-    @unpack TPs = tp
-
-    # calculate aggregate capital and labor supply in next time period
-    K_next, L_next = calc_aggregate(pt, tp.pol_func_TP[t+1, :, :], tp.ψ_TP[t+1, :, :], tp.lab_func_TP[t+1, :, :])
-    # update the new transition paths
-    K_TP_1[t+1] = K_next
-    L_TP_1[t+1] = L_next
-
-end
 
 
 # display_progress: This function plots the new and old transition paths for
@@ -316,17 +315,16 @@ end
 #       is close enough to the ending steady state (no social security). If it's
 #       not close enough, the transition period is lengthened.
 
-function solve_algorithm(experiment::String, TPs::Int64; date_imple_input::Int64 = 1)
+function solve_algorithm(experiment::String, TPs::Int64, p0::Primitives, pT::Primitives,
+    r0::Results, rT::Results; date_imple_input::Int64 = 1)
 
     converged_outer = 0          # convergence flag for outer while loop
     iter_outer = 1               # iteration counter for outer while loop
 
     while converged_outer == 0   # outer loop
 
-        # initialize transition path variables
-        tp = initialize_TP(p0, pT, TPs, date_imple_input)
-        # initialize mutatable struc primitives for current period (t)
-        pt = initialize_prims()
+        tp = initialize_TP(p0, pT, TPs, date_imple_input) # initialize transition path variables
+        pt = initialize_prims()  # initialize mutatable struc primitives for current period (t)
 
         K_TP_1 = zeros(tp.TPs)   # initialize arrays for new transition path
         L_TP_1 = zeros(tp.TPs)
@@ -335,19 +333,14 @@ function solve_algorithm(experiment::String, TPs::Int64; date_imple_input::Int64
 
         while converged_inner == 0 # inner loop
 
-            # shoot backwards from T-1 to 1 to solve dynamic household programming
-            @time shoot_backward(pt, tp, r0, rT)
+            @time shoot_backward(pt, tp, r0, rT) # shoot backwards to solve dynamic household problem
+            @time shoot_forward(pt, tp, r0, K_TP_1, L_TP_1) # shoot forwards to solve cross-sec distribution
 
-            # shoot forwards from 1 to T to solve cross-sec distribution for age and time
-            @time shoot_forward(pt, tp, r0, K_TP_1, L_TP_1)
-
-            # check progress and convergence
-            converged_inner = check_convergence_TP(iter_inner, pt, tp, K_TP_1, L_TP_1, experiment)
+            converged_inner = check_convergence_TP(iter_inner, pt, tp, K_TP_1, L_TP_1, experiment) # check progress and convergence
             iter_inner += 1   # update iteration counter
         end
 
-        # check outer convergence, update
-        converged_outer, update_TPs = check_convergence_SS(pT, tp, TPs, iter_outer)
+        converged_outer, update_TPs = check_convergence_SS(pT, tp, TPs, iter_outer) # check outer convergence, update
         TPs = update_TPs # update number of transition periods
         iter_outer += 1
     end

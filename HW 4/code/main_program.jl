@@ -33,11 +33,11 @@ pT, rT, wT, cvT = solve_model(θ_0 = 0.0)       # solve θ = 0 model    - with n
 # ------------------------------------------------------------------------ #
 
 # initiate with 30 transition periods
-tp_u, pt_u = solve_algorithm("unanticipated", 30)
+tp_u, pt_u = solve_algorithm("unanticipated", 50, p0, pT, r0, rT)
 
 # ------------------------------------------------------------------------ #
 #  (2) compute transition path for expected elimination of social security
 # ------------------------------------------------------------------------ #
 
 # initiate with 50 transition periods, date when policy implemented at 21
-tp_a, pt_a = solve_algorithm("anticipated", 50; date_imple_input = 21)
+tp_a, pt_a = solve_algorithm("anticipated", 50, p0, pT, r0, rT; date_imple_input = 21)
