@@ -16,7 +16,9 @@ include("model_and_functions.jl")              # import all functions and strucs
 # ------------------------------------------------------------------------ #
 #  (1) initialize primitives, results (draw shocks at this stage)
 # ------------------------------------------------------------------------ #
-
+prim = Primitives()
+algo = Algorithm()
+shocks = Shocks()
 converged = 0
 
 # ------------------------------------------------------------------------ #
