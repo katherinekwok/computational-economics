@@ -42,20 +42,26 @@ end
 # initialize_TP: This function solves for the steady states, then initializes the
 #                transition path variables (stored in the Results_TP struc).
 #
-# NOTE: by default, this function initializes a transtion path for unanticipated
-#       social security shock
+# NOTE: By default, this function initializes a transtion path for unanticipated
+#       social security shock.
+#
+
 function initialize_TP(p0::Primitives, pT::Primitives, TPs::Int64, date_implemented::Int64)
 
     println("-----------------------------------------------------------------------")
     @printf "          Starting Outer While Loop with %d transition periods \n" TPs
     println("-----------------------------------------------------------------------")
 
-    @unpack α, δ, μ_r, na, nz, N, age_retire = p0 # unpack prims from θ = 0.11 model (same for θ = 0)
+    @unpack α, δ, μ_r, na, nz, N, age_retire = p0 # unpack prims from θ = 0.11 model
 
-    θ_TP = vcat(repeat([p0.θ], date_implemented - 1), repeat([pT.θ], TPs - date_implemented + 1))
+    θ_TP = vcat(repeat([p0.θ], date_implemented - 1), repeat([pT.θ], TPs - date_implemented + 1)) # transition path of θ
 
-    K_TP = collect(range(p0.K_0, step = ((pT.K_0 - p0.K_0)/TPs), stop = pT.K_0))[2:TPs+1] # transition path of K
-    L_TP = collect(range(p0.L_0, step = ((pT.L_0 - p0.L_0)/TPs), stop = pT.L_0))[2:TPs+1] # transition path of L
+    K_TP = collect(range(p0.K_0, step = ((pT.K_0 - p0.K_0)/(TPs-1)), stop = pT.K_0)) # transition path of K
+    L_TP = collect(range(p0.L_0, step = ((pT.L_0 - p0.L_0)/(TPs-1)), stop = pT.L_0)) # transition path of L
+
+    # NOTE: the first aggregate K, L is the initial SS K, L with θ = 0.11, because
+    #       at t = 1, households are still in old SS asset allocations.
+
     r_TP = F_2.(α, δ, K_TP, L_TP)               # transition path of r using K_TP, L_TP
     w_TP = F_1.(α, K_TP, L_TP)                  # transition path of w using K_TP, L_TP
     b_TP = calculate_b.(θ_TP, w_TP, L_TP, μ_r)  # transition path of b
@@ -86,10 +92,10 @@ end
 function shoot_backward(pt::Primitives, tp::TransitionPaths, r0::Results, rT::Results)
     @unpack TPs = tp # unpack toilet paper :-) (i.e. transition path)
 
-    tp.val_func_TP[TPs, :, :] = rT.val_func     # store the initialize steady state into first period (t=1)
+    tp.val_func_TP[TPs, :, :] = rT.val_func     # at t = T, the val/pol/lab func is the same at SS with θ = 0
     tp.pol_func_TP[TPs, :, :] = rT.pol_func
     tp.lab_func_TP[TPs, :, :] = rT.lab_func
-    rt_next = rT                              # initialize next results (contains value, pol, lab fun)
+    rt_next = rT                                # initialize next results (contains value, pol, lab fun)
 
     for t in TPs-1:-1:1 # iterate from T back to 0
 
@@ -156,13 +162,14 @@ end
 # time period. Then, we can calculate the new transition path based on the
 # the policy functions and cross-sec distributions.
 #
-# NOTE: The first period distribution is always the same as that of the steady
+# NOTE: The t = 0 period distribution is always the same as that of the steady
 #       state in which θ = 0.11 (when there is social security).
 
 function shoot_forward(pt::Primitives, tp::TransitionPaths, r0::Results, K_TP_1::Array{Float64, 1}, L_TP_1::Array{Float64, 1})
     @unpack TPs = tp # unpack toilet paper :-) (i.e. transition path)
 
-    tp.ψ_TP[1, :, :] = r0.ψ                    # fill first period with the initial steady state dist
+    tp.ψ_TP[1, :, :] = r0.ψ                    # at t = 1, the distribution is the same as SS with θ = 0.11
+    update_path(0, pt, tp, K_TP_1, L_TP_1)     # update aggregate K and L for t = 1
 
     for t in 1:TPs-1                           # iterate forward from 1 to T-1
         solve_ψ_TP(t, pt, tp)                  # solve for distribution by age and time period
@@ -213,7 +220,7 @@ function display_progress(tp::TransitionPaths, K_TP_1::Array{Float64}, L_TP_1::A
     L_plot = plot([tp.L_TP L_TP_1 repeat([p0.L_0], TPs) repeat([pT.L_0], TPs)],
             label = ["Old TP" "New TP" "SS w/ θ > 0" "SS w/ θ = 0"],
             title = "Aggregate Labor Transition Path", legend = :bottomright,
-            ylims = (0.34, 0.37))
+            ylims = (0.34, 0.38))
     display(L_plot)
 
     if save == true
@@ -246,8 +253,8 @@ function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
         tp.K_TP = λ .* K_TP_1 .+ (1-λ) .* K_TP # adjust using λ paramter
         tp.L_TP = λ .* L_TP_1 .+ (1-λ) .* L_TP
 
-        tp.w_TP = F_1.(α, δ, tp.K_TP, tp.L_TP)               # transition path of w
-        tp.r_TP = F_2.(α, tp.K_TP, tp.L_TP)                  # transition path of r
+        tp.w_TP = F_1.(α, tp.K_TP, tp.L_TP)                  # transition path of w
+        tp.r_TP = F_2.(α, δ, tp.K_TP, tp.L_TP)               # transition path of r
         tp.b_TP = calculate_b.(θ_TP, tp.w_TP, tp.L_TP, μ_r)  # transition path of θ
 
         converged = 0    # convergence flag still 0
