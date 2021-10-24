@@ -16,7 +16,8 @@
 # ------------------------------------------------------------------------ #
 
 # NOTE: Most of the structs below are just slightly modified versions of Phil's
-#       reference code.
+#       reference code. The main changes I made are variable names, adding comments,
+#       reducing repetitive code, and some reorganization.
 
 # Primitives: This struct holds all the model primitives, including paramter values
 #             and the capital and aggregate capital grids, and states (employment
@@ -125,20 +126,19 @@ mutable struct Results
     a1::Float64
     b0::Float64                 # regression coefficients for bad state
     b1::Float64
-    R2::Array{Float64,1}        # R^2 values for model fit evaluation
+    R2::Float64                 # R^2 values for model fit evaluation
 end
 
-# initialize_results: This function initializes the results struct
-function initialize_results()
-end
 
 # draw_shocks: This function draws a sequence of z (economy/aggregate shocks) and
 #              ϵ (employment/idiosyncratic shocks)
-function draw_shocks(shocks::Shocks, N::Int64, T::Int64)
-    @unpack p_gg, p_bb, m_gg, m_gb, m_bg, m_bb = shocks
+
+function draw_shocks(shocks::Shocks, algo::Algorithm)
+    @unpack N, T = algo
+    @unpack p_gg, p_bb, π_gg, π_gb, π_bg, π_bb = shocks
 
     Random.seed!(12345678) # set seed
-    dist = Uniform(0, 1)   # distribution to draw shocks from
+    dist = Distributions.Uniform(0, 1) # distribution to draw shocks from
 
     z_state = zeros(T)   # sequence of economy/aggregate shocks
     ϵ_state = zeros(N,T) # sequence of employment/idiosyncratic shocks
@@ -167,20 +167,20 @@ function draw_shocks(shocks::Shocks, N::Int64, T::Int64)
             ϵ_shock = rand(dist) # draw a ϵ shock
 
             if z_state[t-1] == 1 && z_state[t] == 1 # if economy stays good
-                p_11 = m_gg[1,1] # prob of staying employed
-                p_00 = m_gg[2,2] # prob of staying unemployed
+                p_11 = π_gg[1,1] # prob of staying employed
+                p_00 = π_gg[2,2] # prob of staying unemployed
 
             elseif z_state[t-1] == 1 && z_state[t] == 2 # if economy changes from good to bad
-                p_11 = m_gb[1,1] # prob of staying employed
-                p_00 = m_gb[2,2] # prob of staying unemployed
+                p_11 = π_gb[1,1] # prob of staying employed
+                p_00 = π_gb[2,2] # prob of staying unemployed
 
-            elseif agg_state[t-1] == 2 && agg_state[t] == 1 # if economy changes from bad to good
-                p_11 = m_bg[1,1] # prob of staying employed
-                p_00 = m_bg[2,2] # prob of staying unemployed
+            elseif z_state[t-1] == 2 && z_state[t] == 1 # if economy changes from bad to good
+                p_11 = π_bg[1,1] # prob of staying employed
+                p_00 = π_bg[2,2] # prob of staying unemployed
 
-            elseif agg_state[t-1] == 2 && agg_state[t] == 2 # if economy stays bad
-                p_11 = m_bb[1,1] # prob of staying employed
-                p_00 = m_bb[2,2] # prob of staying unemployed
+            elseif z_state[t-1] == 2 && z_state[t] == 2 # if economy stays bad
+                p_11 = π_bb[1,1] # prob of staying employed
+                p_00 = π_bb[2,2] # prob of staying unemployed
             end
 
             if ϵ_state[n,t-1] == 1 && ϵ_shock < p_11     # if prev employed, shock < prob stay employed, stay
@@ -196,6 +196,38 @@ function draw_shocks(shocks::Shocks, N::Int64, T::Int64)
     end
 
     return ϵ_state, z_state
+end
+
+# initialize_results: This function initializes the results struct
+function initialize_results(prim::Primitives)
+    @unpack n_k, n_ϵ, n_K, n_z = prim
+
+    pol_func = zeros(n_k, n_ϵ, n_K, n_z)  # policy function for asset/savings
+    val_func = zeros(n_k, n_ϵ, n_K, n_z)  # value function
+
+    a0 = 0 # regression coeffients for good state; initialize with guess
+    a1 = 1
+    b0 = 0 # regression coefficients for bad state; initialize with guess
+    b1 = 1
+    R2 = 0 # R^2 value for model fit evaluation
+
+    res = Results(pol_func, val_func, a0, a1, b0, b1, R2)
+    res # return initilized struct
+end
+
+# initialize: This function initializes all the relevant structs for the algorithm,
+#             calls the function to initialize results struct, and draws a sequence
+#             of shocks.
+function initialize()
+
+    prim = Primitives()
+    algo = Algorithm()
+    resu = initialize_results(prim)
+
+    shocks = Shocks()
+    ϵ_seq, z_seq = draw_shocks(shocks, algo)
+
+    prim, algo, resu, shocks, ϵ_seq, z_seq    # return all initialized structs
 end
 
 

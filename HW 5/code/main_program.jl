@@ -8,17 +8,17 @@
 #  (0) load packages, functions, initialize
 # ------------------------------------------------------------------------ #
 
-using Distributed, SharedArrays                # load package for running julia in parallel
-using CSV, DataFrames                          # load packages for exporting data to csv
-using Parameters, Plots, Printf, LinearAlgebra # load standard packages
-include("model_and_functions.jl")              # import all functions and strucs
+using CSV, DataFrames                                  # load packages for exporting data to csv
+using Parameters, Plots, Printf, LinearAlgebra         # load standard packages
+using Interpolations                                   # load package for interpolation
+using Random, Distributions                            # load package for drawing shocks
+include("model_and_functions.jl")                      # import all functions and strucs
 
 # ------------------------------------------------------------------------ #
 #  (1) initialize primitives, results (draw shocks at this stage)
 # ------------------------------------------------------------------------ #
-prim = Primitives()
-algo = Algorithm()
-shocks = Shocks()
+
+prim, algo, resu, shocks, ϵ_seq, z_seq = initialize()
 converged = 0
 
 # ------------------------------------------------------------------------ #
