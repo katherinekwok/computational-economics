@@ -57,7 +57,7 @@ function initialize_TP(p0::Primitives, pT::Primitives, TPs::Int64, date_implemen
     θ_TP = vcat(repeat([p0.θ], date_implemented - 1), repeat([pT.θ], TPs - date_implemented + 1)) # transition path of θ
 
     K_TP = collect(range(p0.K_0, step = ((pT.K_0 - p0.K_0)/(TPs-1)), stop = pT.K_0)) # transition path of K
-    L_TP = repeat([pT.L_0], TPs) # transition path of L
+    L_TP = collect(range(p0.L_0, step = ((pT.L_0 - p0.L_0)/(TPs-1)), stop = pT.L_0)) # transition path of L
 
     # NOTE: the first aggregate K, L is the initial SS K, L with θ = 0.11, because
     #       at t = 1, households are still in old SS asset allocations.
@@ -142,8 +142,8 @@ function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths)
     @unpack N, n, na, z_initial_prob, nz, μ = pt # unpack paramters
 
     # distribution for model age = 1
-    tp.ψ_TP[t, 1, 1] = pt.z_initial_prob[1]  * μ[1]    # distribution of high prod people (at birth)
-    tp.ψ_TP[t, na+1, 1] = pt.z_initial_prob[2] * μ[1]  # distribution of low prod people (at birth)
+    tp.ψ_TP[t+1, 1, 1] = pt.z_initial_prob[1]  * μ[1]    # distribution of high prod people (at birth)
+    tp.ψ_TP[t+1, na+1, 1] = pt.z_initial_prob[2] * μ[1]  # distribution of low prod people (at birth)
 
     for age in 1:N-1 # loop through ages
 
@@ -151,7 +151,6 @@ function solve_ψ_TP(t::Int64, pt::Primitives, tp::TransitionPaths)
         trans_mat = make_trans_matrix(pt, tp.pol_func_TP[t, :, :], age)
         # use transition matrix and current distribution for next period and age distribution
         tp.ψ_TP[t+1, :, age+1] = trans_mat' * tp.ψ_TP[t, :, age] * (1/(1+n))
-
     end
 end
 
@@ -252,10 +251,6 @@ function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
         tp.K_TP = λ .* K_TP_1 .+ (1-λ) .* K_TP # adjust using λ paramter
         tp.L_TP = λ .* L_TP_1 .+ (1-λ) .* L_TP
 
-        tp.w_TP = F_1.(α, tp.K_TP, tp.L_TP)                  # transition path of w
-        tp.r_TP = F_2.(α, δ, tp.K_TP, tp.L_TP)               # transition path of r
-        tp.b_TP = calculate_b.(θ_TP, tp.w_TP, tp.L_TP, μ_r)  # transition path of θ
-
         converged = 0    # convergence flag still 0
 
         println("-----------------------------------------------------------------------")
@@ -266,14 +261,21 @@ function check_convergence_TP(iter::Int64, pt::Primitives, tp::TransitionPaths,
 
         display_progress(tp, K_TP_1, L_TP_1, p0, pT, experiment; save = true) # plot!
 
-        converged = 1    # update convergence flag!
         tp.K_TP = K_TP_1 # store the converged transition paths
         tp.L_TP = L_TP_1
+
+        converged = 1    # update convergence flag!
 
         println("-----------------------------------------------------------------------")
         @printf "           Inner while loop converged after %d iteration\n" iter
         println("-----------------------------------------------------------------------")
     end
+
+    # update prices and benefit level
+    tp.w_TP = F_1.(α, tp.K_TP, tp.L_TP)                  # transition path of w
+    tp.r_TP = F_2.(α, δ, tp.K_TP, tp.L_TP)               # transition path of r
+    tp.b_TP = calculate_b.(θ_TP, tp.w_TP, tp.L_TP, μ_r)  # transition path of b
+
     converged # return convergence flag
 end
 
@@ -287,7 +289,7 @@ function check_convergence_SS(pT::Primitives, tp::TransitionPaths, TPs::Int64, i
     diff = abs(tp.K_TP[TPs] - pT.K_0) + abs(tp.L_TP[TPs] - pT.L_0)
 
     if diff > tol                 # if difference greater than tolerance
-        update_TPs = TPs + 10     # lengthen transition period by 10
+        update_TPs = TPs + 20     # lengthen transition period by 20
         converged = 0
     else
         converged = 1      # update convergence flag!
@@ -348,12 +350,87 @@ function solve_algorithm(experiment::String, TPs::Int64, p0::Primitives, pT::Pri
     tp, pt # return converged transition paths and other stuff
 end
 
+# calculate_EV: This function calculates the consumption equivalence of the
+#               policy change relative to the steady state with social security.
+
+function calculate_EV(pt::Primitives, tp::TransitionPaths, r0::Results)
+    @unpack nz, na, N, γ, σ = pt
+    EV = zeros(nz, na, N)        # initialize EV array by age, states, asset levels
+    EV_age = zeros(age)          # initialize EV array by age
+    voters_in_favor = zeros(age) # initialize array of voters in favor of policy change by age
+
+    for age in 1:N               # for each age
+        for z_index in 1:nz         # for each state
+            for a_indez in 1:na         # for each asset level
+
+                if age >= age_retire
+                    val_index = retiree_val_index(age_retire, nz, age)  # get asset index for retireee
+                else
+                    val_index = worker_val_index(z_index, age, nz)      # get asset index for worker
+                end
+                ψ_index = a_index + na*(z_index - 1)                    # get index for stationary distribution
+
+
+                v0_TP = tp.val_func_tp[1, a_index, val_index]   # numerator (use t = 1 b/c household still at old asset level)
+                v0_SS = r0.val_func[a_index, val_index]         # denominator
+
+                EV[z_indez, a_indez, age] = (v0_TP/v0_SS)^(1/(γ*(1-σ)))         # EV formula
+                EV[age] += EV[z_index, a_index, age] * ψ_index[ψ_index, age]    # EV by age (weighted by distribution)
+
+                # assume voters will be willing to support policy if EV >= 0 (weighted by distribution)
+                voters_in_favor += (EV[z_index, a_index, age] >= 0) * ψ_index[ψ_index, age]
+            end
+        end
+    end
+    EV, EV_age, voters_in_favor # return completed calculations
+end
+
 # summarize_results: This function takes the output from running the main algorithm
 #                    and produces plots and the consumption equivalent variations.
 
-function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitives, p0::Primitives)
+function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitives, r0::Results)
 
-    # calculate consumption equivalent
-    # make plots
+    EV, EV_age, voters_in_favor = calculate_EV(pt, tp, r0) # calculate consumption equivalence variation objects
+
+    # display share of voters supporting policy (sum across ages)
+    println("-----------------------------------------------------------------------")
+    @printf "            The share of voters supporting policy is %d\n" sum(voters_in_favor)
+    println("-----------------------------------------------------------------------")
+
+    # make plots for K, L, r, w by transition period
+
+    K_plot = plot([tp.K_TP repeat([p0.K_0], TPs) repeat([pT.K_0], TPs)],
+            label = ["K TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Aggregate Capital Transition Path", legend = :bottomright,
+            ylims = (3.25, 4.75), xlabel = "Time")
+    savefig(K_plot, "output/K_TP_"*experiment*"_"*string(TPs)*".png")
+
+    L_plot = plot([tp.L_TP repeat([p0.L_0], TPs) repeat([pT.L_0], TPs)],
+            label = ["L TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Aggregate Labor Transition Path", legend = :bottomright,
+            ylims = (0.34, 0.38), xlabel = "Time")
+    savefig(L_plot, "output/L_TP_"*experiment*"_"*string(TPs)*".png")
+
+    r_plot = plot([tp.r_TP*100 repeat([p0.r*100], TPs) repeat([pT.r*100], TPs)],
+            label = ["r TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Interest Rate Transition Path (%)", legend = :topright,
+            ylims = (1, 3), xlabel = "Time")
+    savefig(r_plot, "output/r_TP_"*experiment*"_"*string(TPs)*".png")
+
+    w_plot = plot([tp.w_TP repeat([p0.w], TPs) repeat([pT.w], TPs)],
+            label = ["w TP" "SS w/ θ > 0" "SS w/ θ = 0"],
+            title = "Wage Transition Path", legend = :bottomright,
+            ylims = (1.4, 1.6), xlabel = "Time")
+    savefig(w_plot, "output/w_TP_"*experiment*"_"*string(TPs)*".png")
+
+    # make plots for EV_age and voters in favor of policy
+
+    EV_plot = plot([EV_age], title = "Consumption Equivalence",
+              ylims = (0.1, 0.7), xlabel = "Agent Age")
+    savefig(EV_plot, "output/EV_TP_"*experiment*"_"*string(TPs)*".png")
+
+    voters_plot = plot([voters_in_favor], title = "Fraction of Voters Supporting Policy",
+                  ylims = (0, 1), xlabel = "Agent Age")
+    savefig(w_plot, "output/voters_TP_"*experiment*"_"*string(TPs)*".png")
 
 end

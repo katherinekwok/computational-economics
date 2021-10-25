@@ -11,7 +11,7 @@
 #       (3) expected elimination of social security
 
 # ------------------------------------------------------------------------ #
-#  (0) load packages, functions; compute steady states
+#  (0) load packages, functions
 # ------------------------------------------------------------------------ #
 
 using Distributed, SharedArrays                # load package for running julia in parallel
@@ -32,12 +32,10 @@ pT, rT, wT, cvT = solve_model(θ_0 = 0.0)       # solve θ = 0 model    - with n
 #  (1) compute transition path for unexpected elimination of social security
 # ------------------------------------------------------------------------ #
 
-# initiate with 30 transition periods
-tp_u, pt_u = solve_algorithm("unanticipated", 50, p0, pT, r0, rT)
+tp_u, pt_u = solve_algorithm("unanticipated", 50, p0, pT, r0, rT) # start with 50 periods
 
 # ------------------------------------------------------------------------ #
 #  (2) compute transition path for expected elimination of social security
 # ------------------------------------------------------------------------ #
 
-# initiate with 50 transition periods, date when policy implemented at 21
-tp_a, pt_a = solve_algorithm("anticipated", 50, p0, pT, r0, rT; date_imple_input = 21)
+tp_a, pt_a = solve_algorithm("anticipated", 60, p0, pT, r0, rT; date_imple_input = 21) # start with 60 periods
