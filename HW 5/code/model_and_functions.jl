@@ -205,10 +205,10 @@ function initialize_results(prim::Primitives)
     pol_func = zeros(n_k, n_ϵ, n_K, n_z)  # policy function for asset/savings
     val_func = zeros(n_k, n_ϵ, n_K, n_z)  # value function
 
-    a0 = 0 # regression coeffients for good state; initialize with guess
-    a1 = 1
-    b0 = 0 # regression coefficients for bad state; initialize with guess
-    b1 = 1
+    a0 = 0.095 # regression coeffients for good state; initialize with guess given by handout
+    a1 = 0.999
+    b0 = 0.085 # regression coefficients for bad state; initialize with guess given by handout
+    b1 = 0.999
     R2 = 0 # R^2 value for model fit evaluation
 
     res = Results(pol_func, val_func, a0, a1, b0, b1, R2)
@@ -234,3 +234,85 @@ end
 # ------------------------------------------------------------------------ #
 #   (1) functions for value function iteration
 # ------------------------------------------------------------------------ #
+
+function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
+    @unpack cBET, cALPHA, cDEL = P
+    @unpack n_k, k_grid, n_eps, eps_grid, eps_h, K_grid, n_K, n_z, z_grid = G
+    @unpack u_g, u_b, markov = S
+    @unpack pf_k, pf_v, a0, a1, b0, b1= R
+
+    pf_k_up = zeros(n_k, n_eps, n_K, n_z)
+    pf_v_up = zeros(n_k, n_eps, n_K, n_z)
+
+    # In Julia, this is how we define an interpolated function.
+    # Need to use the package "Interpolations".
+    # (If you so desire, you can write your own interpolation function too!)
+    k_interp = interpolate(k_grid, BSpline(Linear()))
+    v_interp = interpolate(pf_v, BSpline(Linear()))
+
+    for (i_z, z_today) in enumerate(z_grid)
+        for (i_K, K_today) in enumerate(K_grid)
+            if i_z == 1
+                K_tomorrow = a0 + a1*log(K_today)
+            elseif i_z == 2
+                K_tomorrow = b0 + b1*log(K_today)
+            end
+            K_tomorrow = exp(K_tomorrow)
+
+            # See that K_tomorrow likely does not fall on our K_grid...this is why we need to interpolate!
+            i_Kp = get_index(K_tomorrow, K_grid)
+
+            for (i_eps, eps_today) in enumerate(eps_grid)
+                row = i_eps + n_eps*(i_z-1)
+
+                for (i_k, k_today) in enumerate(k_grid)
+                    budget_today = r_today*k_today + w_today*eps_today + (1.0 - cDEL)*k_today
+
+                    # We are defining the continuation value. Notice that we are interpolating over k and K.
+                    v_tomorrow(i_kp) = markov[row,1]*v_interp(i_kp,1,i_Kp,1) + markov[row,2]*v_interp(i_kp,2,i_Kp,1) +
+                                        markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
+
+
+                    # We are now going to solve the HH's problem (solve for k).
+                    # We are defining a function val_func as a function of the agent's capital choice.
+                    val_func(i_kp) = log(budget_today - k_interp(i_kp)) +  cBET*v_tomorrow(i_kp)
+
+                    # Need to make our "maximization" problem a "minimization" problem.
+                    obj(i_kp) = -val_func(i_kp)
+                    lower = 1.0
+                    upper = get_index(budget_today, k_grid)
+
+                    # Then, we are going to maximize the value function using an optimization routine.
+                    # Note: Need to call in optimize to use this package.
+                    opt = optimize(obj, lower, upper)
+
+                    k_tomorrow = k_interp(opt.minimizer[1])
+                    v_today = -opt.minimum
+
+                    # Update PFs
+                    pf_k_up[i_k, i_eps, i_K, i_z] = k_tomorrow
+                    pf_v_up[i_k, i_eps, i_K, i_z] = v_today
+                end
+            end
+        end
+    end
+
+    return pf_k_up, pf_v_up
+end
+
+function get_index(val::Float64, grid::Array{Float64,1})
+    n = length(grid)
+    index = 0
+    if val <= grid[1]
+        index = 1
+    elseif val >= grid[n]
+        index = n
+    else
+        index_upper = findfirst(x->x>val, grid)
+        index_lower = index_upper - 1
+        val_upper, val_lower = grid[index_upper], grid[index_lower]
+
+        index = index_lower + (val - val_lower) / (val_upper - val_lower)
+    end
+    return index
+end
