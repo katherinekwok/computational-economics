@@ -11,6 +11,8 @@
 #   (2) functions for simulating capital path
 #   (3) functions for estimating regression and checking for convergence
 
+
+##
 # ------------------------------------------------------------------------ #
 #   (0) set up strucs and functions to initialize (including draw shocks)
 # ------------------------------------------------------------------------ #
@@ -230,7 +232,7 @@ function initialize()
     prim, algo, resu, shocks, ϵ_seq, z_seq    # return all initialized structs
 end
 
-
+##
 # ------------------------------------------------------------------------ #
 #   (1) functions for value function iteration
 # ------------------------------------------------------------------------ #
@@ -374,4 +376,40 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
         end
     end
     pol_func_up, val_func_up # return updated pol and val functions
+end
+
+##
+# ------------------------------------------------------------------------ #
+#   (2) functions for simulating capital path
+# ------------------------------------------------------------------------ #
+
+# simulate_capital_path: This function simulates the capital path for a random
+#                        draw of ϵ and z shocks, using the policy functions
+#                        computed in value funciton iteration.
+
+function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
+    ϵ_seq::Array{Float64, 2}, z_seq::Array{Float64, 1}; K_ss::Float64 = 11.55)
+
+    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid = prim
+    @unpack N, T = algo
+    @unpack pol_func = res
+
+    K_yesterday = K_ss      # initialize K yesterday with K_ss
+    K_today = 0.0           # initialize K today
+
+    k_yesterday = repeat([K_ss], N)
+
+    for time in 1:T
+        z_shock = z_seq[time]   # draw economy/aggregate shocks
+
+        for person_index in 1:N
+            ϵ_shock = ϵ_seq[person_index, time] # draw idiosyncratic shock for person and time
+
+            pol_z_ϵ = pol_func[:, Integer(ϵ_shock), :, Integer(z_shock)]
+
+            # need to interpolate for policy for K yesterday and k yesterday
+
+        end
+    end
+
 end

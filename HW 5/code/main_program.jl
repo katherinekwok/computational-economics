@@ -26,7 +26,7 @@ converged = 0
 # ------------------------------------------------------------------------ #
 
 while converged == 0
-    res.pol_func, res.val_func = value_function_iteration(prim, res, shocks)
+    res.pol_func, res.val_func = value_function_iteration(prim, res, shocks) # value func iteration
     # simulate capital path
     # estimate regression
     # check difference between initial vs. model estimate
