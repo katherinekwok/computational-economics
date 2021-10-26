@@ -235,84 +235,143 @@ end
 #   (1) functions for value function iteration
 # ------------------------------------------------------------------------ #
 
-function Bellman(P::Params, G::Grids, S::Shocks, R::Results)
-    @unpack cBET, cALPHA, cDEL = P
-    @unpack n_k, k_grid, n_eps, eps_grid, eps_h, K_grid, n_K, n_z, z_grid = G
-    @unpack u_g, u_b, markov = S
-    @unpack pf_k, pf_v, a0, a1, b0, b1= R
-
-    pf_k_up = zeros(n_k, n_eps, n_K, n_z)
-    pf_v_up = zeros(n_k, n_eps, n_K, n_z)
-
-    # In Julia, this is how we define an interpolated function.
-    # Need to use the package "Interpolations".
-    # (If you so desire, you can write your own interpolation function too!)
-    k_interp = interpolate(k_grid, BSpline(Linear()))
-    v_interp = interpolate(pf_v, BSpline(Linear()))
-
-    for (i_z, z_today) in enumerate(z_grid)
-        for (i_K, K_today) in enumerate(K_grid)
-            if i_z == 1
-                K_tomorrow = a0 + a1*log(K_today)
-            elseif i_z == 2
-                K_tomorrow = b0 + b1*log(K_today)
-            end
-            K_tomorrow = exp(K_tomorrow)
-
-            # See that K_tomorrow likely does not fall on our K_grid...this is why we need to interpolate!
-            i_Kp = get_index(K_tomorrow, K_grid)
-
-            for (i_eps, eps_today) in enumerate(eps_grid)
-                row = i_eps + n_eps*(i_z-1)
-
-                for (i_k, k_today) in enumerate(k_grid)
-                    budget_today = r_today*k_today + w_today*eps_today + (1.0 - cDEL)*k_today
-
-                    # We are defining the continuation value. Notice that we are interpolating over k and K.
-                    v_tomorrow(i_kp) = markov[row,1]*v_interp(i_kp,1,i_Kp,1) + markov[row,2]*v_interp(i_kp,2,i_Kp,1) +
-                                        markov[row,3]*v_interp(i_kp,1,i_Kp,2) + markov[row,4]*v_interp(i_kp,2,i_Kp,2)
-
-
-                    # We are now going to solve the HH's problem (solve for k).
-                    # We are defining a function val_func as a function of the agent's capital choice.
-                    val_func(i_kp) = log(budget_today - k_interp(i_kp)) +  cBET*v_tomorrow(i_kp)
-
-                    # Need to make our "maximization" problem a "minimization" problem.
-                    obj(i_kp) = -val_func(i_kp)
-                    lower = 1.0
-                    upper = get_index(budget_today, k_grid)
-
-                    # Then, we are going to maximize the value function using an optimization routine.
-                    # Note: Need to call in optimize to use this package.
-                    opt = optimize(obj, lower, upper)
-
-                    k_tomorrow = k_interp(opt.minimizer[1])
-                    v_today = -opt.minimum
-
-                    # Update PFs
-                    pf_k_up[i_k, i_eps, i_K, i_z] = k_tomorrow
-                    pf_v_up[i_k, i_eps, i_K, i_z] = v_today
-                end
-            end
-        end
-    end
-
-    return pf_k_up, pf_v_up
-end
-
+# get_index: This function gets the index of a value in a given grid, allowing
+#            the index to be in between integers.
 function get_index(val::Float64, grid::Array{Float64,1})
-    n = length(grid)
+
+    n = length(grid)    # get length of grid
     index = 0
-    if val <= grid[1]
+
+    if val <= grid[1]     # get index for value <= grid minimum
         index = 1
-    elseif val >= grid[n]
+    elseif val >= grid[n] # get index for value >= grid maximum
         index = n
     else
-        index_upper = findfirst(x->x>val, grid)
+        index_upper = findfirst(x->x>val, grid)   # get index for value in between
         index_lower = index_upper - 1
         val_upper, val_lower = grid[index_upper], grid[index_lower]
 
         index = index_lower + (val - val_lower) / (val_upper - val_lower)
     end
-    return index
+    index
+end
+
+
+# calc_mean_K: This function calculates the aggregate capital K, given the z state,
+#              using the aggregate capital law of motion.
+function calc_K(z_state::Int64, K_today::Float64, res::Results)
+    @unpack a0, a1, b0, b1 = res
+
+    if z_state == 1
+        K_tomorrow = a0 + a1*log(K_today)
+    elseif z_state == 2
+        K_tomorrow = b0 + b1*log(K_today)
+    end
+    exp(K_tomorrow)
+end
+
+# calc_L: This function calculates the aggregate L using ϵ and z today
+function calc_L(z_state::Int64, ϵ_today::Float64, shocks::Shocks)
+    @unpack u_g, u_b = shocks
+
+    if z_state == 1
+        L_today = ϵ_today * (1 - u_g)
+    elseif z_state == 2
+        L_today = ϵ_today * (1 - u_b)
+    end
+    L_today
+end
+
+# calc_r: This function returns the interest rate r given K, L, z
+function calc_r(K::Float64, L::Float64, z::Float64, α::Float64)
+    (1-α) * z * (K/L)^α
+end
+
+# calc_w: This function returns the wage rate w given K, L, z
+function calc_w(K::Float64, L::Float64, z::Float64, α::Float64)
+    α * z * (K/L)^(α-1)
+end
+
+# interpolate_bellman: This function uses the julia interpolation package to
+#                      solve the bellman function for a given set of (k, ϵ, K, z)
+#
+# NOTE: This was initially a part of the Bellman function provided by Phil.
+#
+function interpolate_bellman(shocks::Shocks, prim::Primitives, res::Results,
+    row::Int64, i_Kp::Float64, r_today::Float64, w_today::Float64, k_today::Float64,
+    ϵ_today::Float64)
+
+    @unpack Π = shocks
+    @unpack δ, β, k_grid = prim
+    @unpack val_func = res
+
+    k_interp = interpolate(k_grid, BSpline(Linear()))   # define interpolation function for k
+    v_interp = interpolate(val_func, BSpline(Linear())) # define interpolation function for v
+
+    # We are defining the continuation value. Notice that we are interpolating over k and K.
+    v_tomorrow(i_kp) = Π[row,1]*v_interp(i_kp,1,i_Kp,1) +
+                       Π[row,2]*v_interp(i_kp,2,i_Kp,1) +
+                       Π[row,3]*v_interp(i_kp,1,i_Kp,2) +
+                       Π[row,4]*v_interp(i_kp,2,i_Kp,2)
+
+
+    # We are now going to solve the HH's problem (solve for k).
+    # We are defining a function val_func as a function of the agent's capital choice.
+    budget = r_today * k_today + w_today * ϵ_today + (1.0 - δ) * k_today
+    val_func(i_kp) = log(budget - k_interp(i_kp)) +  β * v_tomorrow(i_kp)
+
+    obj(i_kp) = -val_func(i_kp)                # minimization problem
+    lowerbound = 1.0
+    upperbound = get_index(budget, k_grid)
+
+    # Then, we are going to maximize the value function using an optimization routine.
+    # Note: Need to call in optimize to use this package.
+    opt = optimize(obj, lowerbound, upperbound)
+
+    k_tomorrow = k_interp(opt.minimizer[1])
+    v_today = -opt.minimum
+
+    k_tomorrow, v_today
+end
+
+# value_function_iteration: This function calls helper functions to solve the
+#                           household dynamic programming problem, using
+#                           interpolation and function minimization.
+function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks)
+
+    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid = prim
+    @unpack pol_func, val_func = res
+
+    pol_func_up = zeros(n_k, n_ϵ, n_K, n_z) # initialize array to updated pol and val func
+    val_func_up = zeros(n_k, n_ϵ, n_K, n_z)
+
+    for (i_z, z_today) in enumerate(z_grid)      # for each economy/aggregate state
+        for (i_K, K_today) in enumerate(K_grid)  # for each aggregate capital today
+
+            # calculate mean K tomorrow using law of motion
+            K_tomorrow = calc_K(i_z, K_today, res)
+            # get index of K tomorrow in K grid (likely not an integer!)
+            i_Kp = get_index(K_tomorrow, K_grid)
+
+            for (i_ϵ, ϵ_today) in enumerate(ϵ_grid)   # for each idiosyncratic employment state
+                row = i_ϵ + n_ϵ*(i_z-1)               # get index for markov transition matrix
+
+                L_today = calc_L(i_z, ϵ_today, shocks)          # get aggregate L
+                w_today = calc_w(K_today, L_today, z_today, α)  # get wage rate
+                r_today = calc_r(K_today, L_today, z_today, α)  # get interest rate
+
+                for (i_k, k_today) in enumerate(k_grid) # for each asset level
+
+                    # use interpolation to solve Bellman for k tomorrow, v today
+                    k_tomorrow, v_today = interpolate_bellman(shocks, prim, res,
+                    row, i_Kp, r_today, w_today, k_today, ϵ_today)
+
+                    pol_func_up[i_k, i_ϵ, i_K, i_z] = k_tomorrow
+                    val_func_up[i_k, i_ϵ, i_K, i_z] = v_today
+
+                end
+            end
+        end
+    end
+    pol_func_up, val_func_up # return updated pol and val functions
 end

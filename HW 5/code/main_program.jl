@@ -10,7 +10,7 @@
 
 using CSV, DataFrames                                  # load packages for exporting data to csv
 using Parameters, Plots, Printf, LinearAlgebra         # load standard packages
-using Interpolations                                   # load package for interpolation
+using Interpolations, Optim                            # load package for interpolation and optimization
 using Random, Distributions                            # load package for drawing shocks
 include("model_and_functions.jl")                      # import all functions and strucs
 
@@ -18,7 +18,7 @@ include("model_and_functions.jl")                      # import all functions an
 #  (1) initialize primitives, results (draw shocks at this stage)
 # ------------------------------------------------------------------------ #
 
-prim, algo, resu, shocks, ϵ_seq, z_seq = initialize()
+prim, algo, res, shocks, ϵ_seq, z_seq = initialize()
 converged = 0
 
 # ------------------------------------------------------------------------ #
@@ -26,7 +26,7 @@ converged = 0
 # ------------------------------------------------------------------------ #
 
 while converged == 0
-    # solve value function iteration
+    res.pol_func, res.val_func = value_function_iteration(prim, res, shocks)
     # simulate capital path
     # estimate regression
     # check difference between initial vs. model estimate
