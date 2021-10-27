@@ -366,7 +366,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
 
                     # use interpolation to solve Bellman for k tomorrow, v today
                     k_tomorrow, v_today = interpolate_bellman(shocks, prim, res,
-                    row, i_Kp, r_today, w_today, k_today, ϵ_today)
+                    row, Float(i_Kp), r_today, w_today, k_today, ϵ_today)
 
                     pol_func_up[i_k, i_ϵ, i_K, i_z] = k_tomorrow
                     val_func_up[i_k, i_ϵ, i_K, i_z] = v_today
@@ -394,22 +394,43 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
     @unpack N, T = algo
     @unpack pol_func = res
 
-    K_yesterday = K_ss      # initialize K yesterday with K_ss
-    K_today = 0.0           # initialize K today
+    K_yesterday = K_ss              # initialize K yesterday with K_ss
+    K_today = 0.0
+    k_yesterday = repeat([K_ss], N) # initialize k yesterday with K_ss
 
-    k_yesterday = repeat([K_ss], N)
+    K_g = zeros(length(filter(x -> x == 1, z_seq))) # agg capital path for good economy
+    K_b = zeros(length(filter(x -> x == 2, z_seq))) # agg capital path for bad economy
+
+    i_g = 1 # index for agg capital path for good economy
+    i_b = 1 # index for agg capital path for bad economy
+
 
     for time in 1:T
         z_shock = z_seq[time]   # draw economy/aggregate shocks
 
+        if z_shock == 1
+            K_g[i_g] = K_yesterday # if good economy, add to good economy capital path
+            i_g += 1
+        else
+            K_b[i_b] = K_yesterday # if bad economy, add to bad economy capital path
+            i_b += 1
+        end
+
         for person_index in 1:N
             ϵ_shock = ϵ_seq[person_index, time] # draw idiosyncratic shock for person and time
 
-            pol_z_ϵ = pol_func[:, Integer(ϵ_shock), :, Integer(z_shock)]
+            pol_z_ϵ = pol_func[:, Integer(ϵ_shock), :, Integer(z_shock)]  # get policy function for z, ϵ
+            k_interp = interpolate(pol_z_ϵ, BSpline(Linear()))             # define interpolation function for k
 
-            # need to interpolate for policy for K yesterday and k yesterday
+            i_k = get_index(k_yesterday[person_index], k_grid) # get index of yesterday's capital for person
+            i_K = get_index(K_yesterday, K_grid)               # get index of yesterday's aggregate capital
 
+            k_yesterday[person_index] = k_interp(i_k, i_K) # interpolate k today (store into array for tomorrow)
+            K_today += k_yesterday[person_index]           # add k to aggregate K today
         end
-    end
 
+        K_yesterday = K_today # update aggregate K today (store into array for tomorrow)
+        K_today = 0.0         # reset K today for next time period
+    end
+    K_g, K_b
 end
