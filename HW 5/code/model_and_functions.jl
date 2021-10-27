@@ -294,6 +294,15 @@ function calc_w(K::Float64, L::Float64, z::Float64, α::Float64)
     α * z * (K/L)^(α-1)
 end
 
+# utility: This is the utility function
+function utility(c::Float64)
+    if c > 0
+        u = log(c) # apply log if c is positive
+    else
+        u = -1/eps()
+    end
+end
+
 # interpolate_bellman: This function uses the julia interpolation package to
 #                      solve the bellman function for a given set of (k, ϵ, K, z)
 #
@@ -320,7 +329,7 @@ function interpolate_bellman(shocks::Shocks, prim::Primitives, res::Results,
     # We are now going to solve the HH's problem (solve for k).
     # We are defining a function val_func as a function of the agent's capital choice.
     budget = r_today * k_today + w_today * ϵ_today + (1.0 - δ) * k_today
-    val_func(i_kp) = log(budget - k_interp(i_kp)) +  β * v_tomorrow(i_kp)
+    val_func(i_kp) = utility(budget - k_interp(i_kp)) +  β * v_tomorrow(i_kp)
 
     obj(i_kp) = -val_func(i_kp)                # minimization problem
     lowerbound = 1.0
@@ -340,7 +349,7 @@ end
 #          programming problem, using interpolation and function minimization.
 function bellman(prim::Primitives, res::Results, shocks::Shocks)
 
-    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid, α = prim
+    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid, α, ϵ_h = prim
     @unpack pol_func, val_func = res
 
     pol_func_up = zeros(n_k, n_ϵ, n_K, n_z) # initialize array to updated pol and val func
@@ -357,7 +366,7 @@ function bellman(prim::Primitives, res::Results, shocks::Shocks)
             for (i_ϵ, ϵ_today) in enumerate(ϵ_grid)   # for each idiosyncratic employment state
                 row = i_ϵ + n_ϵ*(i_z-1)               # get index for markov transition matrix
 
-                L_today = calc_L(i_z, ϵ_today, shocks)          # get aggregate L
+                L_today = calc_L(i_z, ϵ_h, shocks)          # get aggregate L
                 w_today = calc_w(K_today, L_today, z_today, α)  # get wage rate
                 r_today = calc_r(K_today, L_today, z_today, α)  # get interest rate
 
@@ -385,12 +394,22 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
     converged = 0 # convergence flag
     iters = 1     # iteration counter
 
+    println("-----------------------------------------------------------------------")
+    @printf "                 Starting Value function iteration\n"
+    println("-----------------------------------------------------------------------")
+
     while converged == 0 && iters < max_iters
         pol_func_update, val_func_update = bellman(prim, res, shocks) # solve for val and pol func using bellman
         error = maximum(abs.(val_func_update .- res.val_func))        # calculate max absolute error
 
         res.pol_func = pol_func_update # update val and pol func
         res.val_func = val_func_update
+
+        if iters % 100 == 0 # update every 5 iterations
+            println("-----------------------------------------------------------------------")
+            @printf "       Completed %d iterations and error is %.4f. Continuing...\n" iters error
+            println("-----------------------------------------------------------------------")
+        end
 
         if error < tol_vfi # if error less than tol value, converged!
             converged = 1
@@ -458,7 +477,7 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
     end
 
     println("-----------------------------------------------------------------------")
-    @printf "                 Simulating capital path complete."
+    @printf "                 Simulating capital path complete.\n"
     println("-----------------------------------------------------------------------")
     K_path
 end
