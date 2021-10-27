@@ -58,7 +58,9 @@ end
     N::Int64          = 5000         # number of employment shocks to draw per aggregate economy shock
     burn::Int64       = 1000         # number of initial periods to ignore
 
-    tol::Float64   = 1.0 - 1e-2      # tolerance value for overall convergence
+    tol_vfi::Float64 = 1e-4
+    tol_coef::Float64 = 1e-4
+    tol_r2::Float64   = 1.0 - 1e-2      # tolerance value for overall convergence
     max_iters::Int64  = 10000        # max number of iterations to run
 end
 
@@ -334,12 +336,11 @@ function interpolate_bellman(shocks::Shocks, prim::Primitives, res::Results,
     k_tomorrow, v_today
 end
 
-# value_function_iteration: This function calls helper functions to solve the
-#                           household dynamic programming problem, using
-#                           interpolation and function minimization.
-function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks)
+# bellman: This function calls helper functions to solve the household dynamic
+#          programming problem, using interpolation and function minimization.
+function bellman(prim::Primitives, res::Results, shocks::Shocks)
 
-    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid = prim
+    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid, α = prim
     @unpack pol_func, val_func = res
 
     pol_func_up = zeros(n_k, n_ϵ, n_K, n_z) # initialize array to updated pol and val func
@@ -364,7 +365,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
 
                     # use interpolation to solve Bellman for k tomorrow, v today
                     k_tomorrow, v_today = interpolate_bellman(shocks, prim, res,
-                    row, Float(i_Kp), r_today, w_today, k_today, ϵ_today)
+                    row, float(i_Kp), r_today, w_today, k_today, ϵ_today)
 
                     pol_func_up[i_k, i_ϵ, i_K, i_z] = k_tomorrow
                     val_func_up[i_k, i_ϵ, i_K, i_z] = v_today
@@ -373,8 +374,38 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
             end
         end
     end
-    res.pol_func = pol_func_up # update pol and val functions
-    res.val_func = val_func_up
+    pol_func_up, val_func_up # update pol and val functions
+end
+
+# value_function_iteration: This function solves the household dynamic programming
+#                           problem using the bellman funciton and interpolation.
+
+function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks, algo::Algorithm)
+    @unpack max_iters, tol_vfi = algo
+    converged = 0 # convergence flag
+    iters = 1     # iteration counter
+
+    while converged == 0 && iters < max_iters
+        pol_func_update, val_func_update = bellman(prim, res, shocks) # solve for val and pol func using bellman
+        error = maximum(abs.(val_func_update .- res.val_func))        # calculate max absolute error
+
+        res.pol_func = pol_func_update # update val and pol func
+        res.val_func = val_func_update
+
+        if error < tol_vfi # if error less than tol value, converged!
+            converged = 1
+            println("-----------------------------------------------------------------------")
+            @printf "       Value function iteration converged after %d iterations\n" iters
+            println("-----------------------------------------------------------------------")
+        end
+        iters += 1 # update iteration counters
+    end
+
+    if iters == max_iters
+        println("-----------------------------------------------------------------------")
+        @printf "  Value function iteration did not converge. Stopped at max iter = %d\n" max_iters
+        println("-----------------------------------------------------------------------")
+    end
 end
 
 ##
@@ -425,6 +456,10 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
             K_path[time - 1, 2] = K_yesterday
         end
     end
+
+    println("-----------------------------------------------------------------------")
+    @printf "                 Simulating capital path complete."
+    println("-----------------------------------------------------------------------")
     K_path
 end
 
@@ -435,8 +470,8 @@ end
 
 # estimate_regression: This function estimates an AR model for good and states
 #                      and bad states separately, using the simulated capita path.
-function estimate_regression(K_path::Array{Float64, 3}, algo::Algorithm, res::Results)
-    @unpack burn = algo
+function estimate_regression(K_path::Array{Float64, 2}, algo::Algorithm, res::Results)
+    @unpack burn, T = algo
 
     # burn some amount of initial capital path, drop last K because it doesn't have a K next
     K_path = K_path[burn:T-1, :]
@@ -468,13 +503,13 @@ end
 function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
     a1_new::Float64, b0_new::Float64, b1_new::Float64, iter::Int64)
 
-    @unpack λ, tol = algo
+    @unpack λ, tol_coef = algo
     @unpack a0, a1, b0, b1 = res
 
     # calculate difference between existing and new coefficients
     diff = abs(a0_new - a0) + abs(a1_new - a1) + abs(b0_new - b0) + abs(b1_new - b1)
 
-    if diff < tol   # if diff less than tol value, converged!
+    if diff < tol_coef   # if diff less than tol value, converged!
         converged = 1
         res.a0 = a0_new # update for outputting results
         res.a1 = a1_new
@@ -483,6 +518,7 @@ function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
 
         println("-----------------------------------------------------------------------")
         @printf " Converged after %d iterations with R2 values %.3f (g) and %.3f (b)\n" iter res.R2[1] res.R2[2]
+        @printf " Coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" res.a0 res.a1 res.b0 res.b1
         println("-----------------------------------------------------------------------")
 
     else           # if not, update coefficients using λ and continue
@@ -493,7 +529,7 @@ function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
         res.b1 = λ * b1_new + (1-λ) * b1
 
         println("-----------------------------------------------------------------------")
-        @printf " Continuing ... to iteration %d with R2 values %.3f (g) and %.3f (b)\n" iter +1 res.R2[1] res.R2[2]
+        @printf " Continuing ... to iteration %d with R2 values %.3f (g) and %.3f (b)\n" iter+1 res.R2[1] res.R2[2]
         @printf "     Old coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0 a1 b0 b1
         @printf "     New coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0_new a1_new b0_new b1_new
         @printf " Updated coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" res.a0 res.a1 res.b0 res.b1
