@@ -58,9 +58,7 @@ end
     N::Int64          = 5000         # number of employment shocks to draw per aggregate economy shock
     burn::Int64       = 1000         # number of initial periods to ignore
 
-    tol_vfi::Float64  = 1e-4         # tolerance value for value function iteration
-    tol_simulate::Float64 = 1e-4     # tolerance value for simulating capital path
-    tol_main::Float64   = 1.0 - 1e-2 # tolerance value for overall convergence
+    tol::Float64   = 1.0 - 1e-2      # tolerance value for overall convergence
     max_iters::Int64  = 10000        # max number of iterations to run
 end
 
@@ -128,7 +126,7 @@ mutable struct Results
     a1::Float64
     b0::Float64                 # regression coefficients for bad state
     b1::Float64
-    R2::Float64                 # R^2 values for model fit evaluation
+    R2::Array{Float64, 1}       # R^2 values for model fit evaluation
 end
 
 
@@ -211,7 +209,7 @@ function initialize_results(prim::Primitives)
     a1 = 0.999
     b0 = 0.085 # regression coefficients for bad state; initialize with guess given by handout
     b1 = 0.999
-    R2 = 0 # R^2 value for model fit evaluation
+    R2 = zeros(n_z) # R^2 value for model fit evaluation (one for each regression)
 
     res = Results(pol_func, val_func, a0, a1, b0, b1, R2)
     res # return initilized struct
@@ -375,7 +373,8 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
             end
         end
     end
-    pol_func_up, val_func_up # return updated pol and val functions
+    res.pol_func = pol_func_up # update pol and val functions
+    res.val_func = val_func_up
 end
 
 ##
@@ -395,26 +394,13 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
     @unpack pol_func = res
 
     K_yesterday = K_ss              # initialize K yesterday with K_ss
-    K_today = 0.0
+    K_today = 0.0                   # initialize K today
     k_yesterday = repeat([K_ss], N) # initialize k yesterday with K_ss
 
-    K_g = zeros(length(filter(x -> x == 1, z_seq))) # agg capital path for good economy
-    K_b = zeros(length(filter(x -> x == 2, z_seq))) # agg capital path for bad economy
-
-    i_g = 1 # index for agg capital path for good economy
-    i_b = 1 # index for agg capital path for bad economy
-
+    K_path = zeros(T, 3) # agg capital path (colums are K today, K tomorrow, z state today)
 
     for time in 1:T
         z_shock = z_seq[time]   # draw economy/aggregate shocks
-
-        if z_shock == 1
-            K_g[i_g] = K_yesterday # if good economy, add to good economy capital path
-            i_g += 1
-        else
-            K_b[i_b] = K_yesterday # if bad economy, add to bad economy capital path
-            i_b += 1
-        end
 
         for person_index in 1:N
             ϵ_shock = ϵ_seq[person_index, time] # draw idiosyncratic shock for person and time
@@ -429,8 +415,90 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
             K_today += k_yesterday[person_index]           # add k to aggregate K today
         end
 
-        K_yesterday = K_today # update aggregate K today (store into array for tomorrow)
-        K_today = 0.0         # reset K today for next time period
+        K_yesterday = K_today/N # update aggregate K today (store into array for tomorrow)
+        K_today = 0.0           # reset K today for next time period
+
+        K_path[time, 1] = K_yesterday # store aggregate capital and z state for today
+        K_path[time, 3] = z_shock
+
+        if time > 1 # store the next K corresponding to each K today (useful for regression)
+            K_path[time - 1, 2] = K_yesterday
+        end
     end
-    K_g, K_b
+    K_path
+end
+
+##
+# ------------------------------------------------------------------------ #
+#   (3) functions for estimating regression and checking for convergence
+# ------------------------------------------------------------------------ #
+
+# estimate_regression: This function estimates an AR model for good and states
+#                      and bad states separately, using the simulated capita path.
+function estimate_regression(K_path::Array{Float64, 3}, algo::Algorithm, res::Results)
+    @unpack burn = algo
+
+    # burn some amount of initial capital path, drop last K because it doesn't have a K next
+    K_path = K_path[burn:T-1, :]
+
+    # convert K_path to dataframe and subset by z state
+    K_path_df = DataFrame("K_today" => K_path[:, 1], "K_tomorrow" => K_path[:, 2], "z_today" => K_path[:, 3])
+    K_path_g = filter(:z_today => z_today -> z_today == 1, K_path_df) # good state
+    K_path_b = filter(:z_today => z_today -> z_today == 2, K_path_df) # bad state
+
+    # good state regression
+    good_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_g)
+    a0_new = coef(good_state)[1]    # extra coefficients
+    a1_new = coef(good_state)[2]
+    res.R2[1] = r2(good_state)      # get model fit R^2 estimate
+
+    # bad state regression
+    bad_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_b)
+    b0_new = coef(bad_state)[1]    # extra coefficients
+    b1_new = coef(bad_state)[2]
+    res.R2[2] = r2(bad_state)      # get model fit R^2 estimate
+
+    a0_new, a1_new, b0_new, b1_new # return estimates
+end
+
+# check_convergence: This function checks if the estimated coefficients are
+#                    close enough. If so, end while loop. If not, update and
+#                    and continue.
+
+function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
+    a1_new::Float64, b0_new::Float64, b1_new::Float64, iter::Int64)
+
+    @unpack λ, tol = algo
+    @unpack a0, a1, b0, b1 = res
+
+    # calculate difference between existing and new coefficients
+    diff = abs(a0_new - a0) + abs(a1_new - a1) + abs(b0_new - b0) + abs(b1_new - b1)
+
+    if diff < tol   # if diff less than tol value, converged!
+        converged = 1
+        res.a0 = a0_new # update for outputting results
+        res.a1 = a1_new
+        res.b0 = b0_new
+        res.b1 = b1_new
+
+        println("-----------------------------------------------------------------------")
+        @printf " Converged after %d iterations with R2 values %.3f (g) and %.3f (b)\n" iter res.R2[1] res.R2[2]
+        println("-----------------------------------------------------------------------")
+
+    else           # if not, update coefficients using λ and continue
+        converged = 0
+        res.a0 = λ * a0_new + (1-λ) * a0
+        res.a1 = λ * a1_new + (1-λ) * a1
+        res.b0 = λ * b0_new + (1-λ) * b0
+        res.b1 = λ * b1_new + (1-λ) * b1
+
+        println("-----------------------------------------------------------------------")
+        @printf " Continuing ... to iteration %d with R2 values %.3f (g) and %.3f (b)\n" iter +1 res.R2[1] res.R2[2]
+        @printf "     Old coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0 a1 b0 b1
+        @printf "     New coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0_new a1_new b0_new b1_new
+        @printf " Updated coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" res.a0 res.a1 res.b0 res.b1
+        println("-----------------------------------------------------------------------")
+    end
+
+    converged
 end
