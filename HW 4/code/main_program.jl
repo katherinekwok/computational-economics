@@ -26,7 +26,8 @@ include("TP_and_functions.jl")
 # ------------------------------------------------------------------------ #
 
 # compute steady states if not already computed and stored
-if isfile("data/steady_state_T.jld") == false && isfile("data/steady_state_0.jld")
+if isfile("data/steady_states/steady_state_T.jld") == false &&
+    isfile("data/steady_states/steady_state_0.jld")
     p0, r0, w0, cv0 = solve_model()           # solve θ = 0.11 model - with soc security
     pT, rT, wT, cvT = solve_model(θ_0 = 0.0)  # solve θ = 0 model    - with no soc security
 
@@ -46,12 +47,13 @@ end
 # ------------------------------------------------------------------------ #
 
 tp_u, pt_u = solve_algorithm("unanticipated", 70, p0, pT, r0, rT) # start with 70 periods (will converge in ~9 iterations)
-save("data/transition_paths/unexpected_transition_path.jld", "tp_u_saved", tp_u)   # save results
+save("data/transition_paths/unanticipated_transition_path.jld", "tp_u_saved", tp_u)   # save results
 summarize_results("unanticipated", tp_u, pt_u, r0, p0)
 
 # ------------------------------------------------------------------------ #
 #  (2) compute transition path for expected elimination of social security
 # ------------------------------------------------------------------------ #
 
-tp_a, pt_a = solve_algorithm("anticipated", 70, p0, pT, r0, rT; date_imple_input = 21) # start with 70 periods
+tp_a, pt_a = solve_algorithm("anticipated", 90, p0, pT, r0, rT; date_imple_input = 21) # start with 90 periods (will converge in ~9 iterations)
+save("data/transition_paths/anticipated_transition_path.jld", "tp_a_saved", tp_a)   # save results
 summarize_results("anticipated", tp_a, pt_a, r0, p0)

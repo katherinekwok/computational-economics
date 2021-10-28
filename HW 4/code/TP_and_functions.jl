@@ -290,16 +290,17 @@ function check_convergence_SS(pT::Primitives, tp::TransitionPaths, TPs::Int64, i
     diff = abs(tp.K_TP[TPs] - pT.K_0) + abs(tp.L_TP[TPs] - pT.L_0)
 
     if diff > tol                 # if difference greater than tolerance
-        tp.TPs = TPs + 20         # lengthen transition period by 20
+        update_TPs = TPs + 20         # lengthen transition period by 20
         converged = 0
     else
+        update_TPs = TPs   # if converged, just pass the current TP length back
         converged = 1      # update convergence flag!
         println("-----------------------------------------------------------------------")
         @printf "           Outer while loop converged after %d iteration\n" iter
         println("-----------------------------------------------------------------------")
     end
 
-    converged # return convergence flag
+    converged, update_TPs # return convergence flag
 end
 
 ##
@@ -343,7 +344,7 @@ function solve_algorithm(experiment::String, TPs::Int64, p0::Primitives, pT::Pri
             iter_inner += 1   # update iteration counter
         end
 
-        converged_outer = check_convergence_SS(pT, tp, TPs, iter_outer) # check outer convergence, update
+        converged_outer, TPs = check_convergence_SS(pT, tp, TPs, iter_outer) # check outer convergence, update
 
         if converged_outer == 0
             tp = initialize_TP(p0, pT, TPs, date_imple_input) # update transition path struct with new TP
@@ -413,7 +414,7 @@ function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitiv
     # make plots for K, L, r, w by transition period
     # for each plot, append the steady state for time 0 to the solved transition path
 
-    time_period = collect(0:tp_u.TPs) # time from 0 to T
+    time_period = collect(0:tp.TPs) # time from 0 to T
 
     K_plot = plot(time_period,
             [vcat(p0.K_0, tp.K_TP) repeat([p0.K_0], TPs+1) repeat([pT.K_0], TPs+1)],
