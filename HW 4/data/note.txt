@@ -1,0 +1,9 @@
+This directory holds structs needed for and produced by the program:
+
+(1) steady_states
+
+The steady state with and without social security (primitive and results).
+
+(2) transition_paths
+
+The solved transition paths for both anticipated and unanticipated policy changes regarding social security. The files are saved locally and cannot be pushed to the github repo because they are too large.
