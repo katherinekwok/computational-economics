@@ -35,7 +35,7 @@
     k_grid::Array{Float64,1} = range(k_lb, stop = k_ub, length = n_k)
 
     K_lb::Float64 = 10.0            # aggregate capital lower bound
-    K_ub::Float64 = 15.0            # aggregate capital upper bounder
+    K_ub::Float64 = 15.0            # aggregate capital upper bound
     n_K::Int64 = 11                 # aggregate capital grid size
     K_grid::Array{Float64,1} = range(K_lb, stop = K_ub, length = n_K)
 
@@ -301,6 +301,7 @@ function utility(c::Float64)
     else
         u = -1/eps()
     end
+    u
 end
 
 # interpolate_bellman: This function uses the julia interpolation package to
@@ -395,7 +396,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
     iters = 1     # iteration counter
 
     println("-----------------------------------------------------------------------")
-    @printf "                 Starting Value function iteration\n"
+    @printf "                 Starting value function iteration\n"
     println("-----------------------------------------------------------------------")
 
     while converged == 0 && iters < max_iters
@@ -405,7 +406,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
         res.pol_func = pol_func_update # update val and pol func
         res.val_func = val_func_update
 
-        if iters % 100 == 0 # update every 5 iterations
+        if iters % 10 == 0 # update every 10 iterations
             println("-----------------------------------------------------------------------")
             @printf "       Completed %d iterations and error is %.4f. Continuing...\n" iters error
             println("-----------------------------------------------------------------------")
@@ -414,7 +415,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
         if error < tol_vfi # if error less than tol value, converged!
             converged = 1
             println("-----------------------------------------------------------------------")
-            @printf "       Value function iteration converged after %d iterations\n" iters
+            @printf "       Value function iteration converged after %d iterations.\n" iters
             println("-----------------------------------------------------------------------")
         end
         iters += 1 # update iteration counters
@@ -422,7 +423,7 @@ function value_function_iteration(prim::Primitives, res::Results, shocks::Shocks
 
     if iters == max_iters
         println("-----------------------------------------------------------------------")
-        @printf "  Value function iteration did not converge. Stopped at max iter = %d\n" max_iters
+        @printf "  Value function iteration did not converge. Stopped at max iter = %d.\n" max_iters
         println("-----------------------------------------------------------------------")
     end
 end
@@ -448,6 +449,11 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
     k_yesterday = repeat([K_ss], N) # initialize k yesterday with K_ss
 
     K_path = zeros(T, 3) # agg capital path (colums are K today, K tomorrow, z state today)
+
+    println("-----------------------------------------------------------------------")
+    @printf "                 Starting capital path simulation.\n"
+    println("-----------------------------------------------------------------------")
+
 
     for time in 1:T
         z_shock = z_seq[time]   # draw economy/aggregate shocks
