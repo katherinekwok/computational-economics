@@ -48,7 +48,6 @@ end
 
 tp_u, pt_u = solve_algorithm("unanticipated", 70, p0, pT, r0, rT) # start with 70 periods (will converge in ~9 iterations)
 save("data/transition_paths/unanticipated_transition_path.jld", "tp_u_saved", tp_u)   # save results
-summarize_results("unanticipated", tp_u, pt_u, r0, p0)
 
 # ------------------------------------------------------------------------ #
 #  (2) compute transition path for expected elimination of social security
@@ -56,4 +55,10 @@ summarize_results("unanticipated", tp_u, pt_u, r0, p0)
 
 tp_a, pt_a = solve_algorithm("anticipated", 90, p0, pT, r0, rT; date_imple_input = 21) # start with 90 periods (will converge in ~9 iterations)
 save("data/transition_paths/anticipated_transition_path.jld", "tp_a_saved", tp_a)   # save results
-summarize_results("anticipated", tp_a, pt_a, r0, p0)
+
+# ------------------------------------------------------------------------ #
+#  (3) summarize all results
+# ------------------------------------------------------------------------ #
+summarize_results("unanticipated", tp_u, r0, p0)
+summarize_results("anticipated", tp_a, r0, p0)
+compare_results(tp_u, tp_a, r0, p0) 

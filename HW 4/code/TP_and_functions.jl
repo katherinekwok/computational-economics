@@ -397,12 +397,59 @@ function calculate_EV(pt::Primitives, tp::TransitionPaths, r0::Results)
     EV, EV_age, voters_in_favor # return completed calculations
 end
 
+
+# make_plots: This function makes the plots for given specifiation
+function make_plots(K_data::Array{Float64, 2}, L_data::Array{Float64, 2},
+    r_data::Array{Float64, 2}, w_data::Array{Float64, 2}, EV_data::Vector{Vector{Float64}},
+    voter_data::Vector{Vector{Float64}}, data_label::Array{String, 2}, EV_label::Array{String, 2},
+    experiment::String, tp::TransitionPaths)
+
+    @unpack TPs = tp
+    time_period = collect(0:tp.TPs) # time from 0 to T
+
+    # make plots for K, L, r, w by transition period
+    K_plot = plot(time_period, K_data, label = data_label,
+            title = "Aggregate Capital Transition Path", legend = :bottomright,
+            ylims = (3.25, 4.75), xlabel = "Time")
+    savefig(K_plot, "output/K_TP_"*experiment*"_"*string(TPs)*".png")
+
+    L_plot = plot(time_period, L_data, label = data_label,
+            title = "Aggregate Labor Transition Path", legend = :bottomright,
+            ylims = (0.34, 0.38), xlabel = "Time")
+    savefig(L_plot, "output/L_TP_"*experiment*"_"*string(TPs)*".png")
+
+    r_plot = plot(time_period, r_data, label = data_label,
+            title = "Interest Rate Transition Path (%)", legend = :topright,
+            ylims = (1, 3), xlabel = "Time")
+    savefig(r_plot, "output/r_TP_"*experiment*"_"*string(TPs)*".png")
+
+    w_plot = plot(time_period, w_data, label = data_label,
+            title = "Wage Transition Path", legend = :bottomright,
+            ylims = (1.4, 1.6), xlabel = "Time")
+    savefig(w_plot, "output/w_TP_"*experiment*"_"*string(TPs)*".png")
+
+    # make plots for EV_age and voters in favor of policy
+    if experiment != "both"
+        EV_label = EV_label[1]
+    end
+
+    EV_plot = plot(EV_data, title = "Consumption Equivalence",
+    xlabel = "Agent Age",label = EV_label, legend = :bottomleft)
+    savefig(EV_plot, "output/EV_TP_"*experiment*"_"*string(TPs)*".png")
+
+    voters_plot = plot(voter_data, title = "Fraction of Voters Supporting Policy",
+    xlabel = "Agent Age", label = EV_label, legend = :outertopleft, size = (800, 400),
+    xguidefontsize=12, margin=5Plots.mm)
+    savefig(voters_plot, "output/voters_TP_"*experiment*"_"*string(TPs)*".png")
+end
+
 # summarize_results: This function takes the output from running the main algorithm
 #                    and produces plots and the consumption equivalent variations.
 
-function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitives,
-    r0::Results, p0::Primitives)
+function summarize_results(experiment::String, tp::TransitionPaths, r0::Results, p0::Primitives)
+
     @unpack TPs = tp
+    pt = initialize_prims() # we just need some model primitives (same across experiments)
 
     EV, EV_age, voters_in_favor = calculate_EV(pt, tp, r0) # calculate consumption equivalence variation objects
 
@@ -411,45 +458,55 @@ function summarize_results(experiment::String, tp::TransitionPaths, pt::Primitiv
     @printf "            The share of voters supporting policy is %.4f\n" sum(voters_in_favor .* pt.μ)
     println("-----------------------------------------------------------------------")
 
-    # make plots for K, L, r, w by transition period
+    # make plots for K, L, r, w, EV_age, voters in support of policy, by transition period
     # for each plot, append the steady state for time 0 to the solved transition path
+    K_data = [vcat(p0.K_0, tp.K_TP) repeat([p0.K_0], TPs+1) repeat([pT.K_0], TPs+1)]
+    L_data = [vcat(p0.L_0, tp.L_TP) repeat([p0.L_0], TPs+1) repeat([pT.L_0], TPs+1)]
+    r_data = [vcat(p0.r*100, tp.r_TP*100) repeat([p0.r*100], TPs+1) repeat([pT.r*100], TPs+1)]
+    w_data = [vcat(p0.w, tp.w_TP) repeat([p0.w], TPs+1) repeat([pT.w], TPs+1)]
+    EV_data = [EV_age]
+    voter_data = [voters_in_favor]
 
-    time_period = collect(0:tp.TPs) # time from 0 to T
+    data_label = ["TP" "SS w/ θ > 0" "SS w/ θ = 0"]
+    EV_label = ["" ""]
 
-    K_plot = plot(time_period,
-            [vcat(p0.K_0, tp.K_TP) repeat([p0.K_0], TPs+1) repeat([pT.K_0], TPs+1)],
-            label = ["K TP" "SS w/ θ > 0" "SS w/ θ = 0"],
-            title = "Aggregate Capital Transition Path", legend = :bottomright,
-            ylims = (3.25, 4.75), xlabel = "Time")
-    savefig(K_plot, "output/K_TP_"*experiment*"_"*string(TPs)*".png")
+    make_plots(K_data, L_data, r_data, w_data, EV_data, voter_data, data_label, EV_label, experiment, tp)
 
-    L_plot = plot(time_period,
-            [vcat(p0.L_0, tp.L_TP) repeat([p0.L_0], TPs+1) repeat([pT.L_0], TPs+1)],
-            label = ["L TP" "SS w/ θ > 0" "SS w/ θ = 0"],
-            title = "Aggregate Labor Transition Path", legend = :bottomright,
-            ylims = (0.34, 0.38), xlabel = "Time")
-    savefig(L_plot, "output/L_TP_"*experiment*"_"*string(TPs)*".png")
+end
 
-    r_plot = plot(time_period,
-            [vcat(p0.r*100, tp.r_TP*100) repeat([p0.r*100], TPs+1) repeat([pT.r*100], TPs+1)],
-            label = ["r TP" "SS w/ θ > 0" "SS w/ θ = 0"],
-            title = "Interest Rate Transition Path (%)", legend = :topright,
-            ylims = (1, 3), xlabel = "Time")
-    savefig(r_plot, "output/r_TP_"*experiment*"_"*string(TPs)*".png")
+# compare_results: This function takes the ouput from the main algorithm and compares
+#                  two given experiment results
 
-    w_plot = plot(time_period,
-            [vcat(p0.w, tp.w_TP) repeat([p0.w], TPs+1) repeat([pT.w], TPs+1)],
-            label = ["w TP" "SS w/ θ > 0" "SS w/ θ = 0"],
-            title = "Wage Transition Path", legend = :bottomright,
-            ylims = (1.4, 1.6), xlabel = "Time")
-    savefig(w_plot, "output/w_TP_"*experiment*"_"*string(TPs)*".png")
+function compare_results(tp_u::TransitionPaths, tp_a::TransitionPaths, r0::Results, p0::Primitives)
+    @unpack TPs = tp_u
 
-    # make plots for EV_age and voters in favor of policy
+    pt = initialize_prims() # we just need some model primitives (same across experiments)
 
-    EV_plot = plot([EV_age], title = "Consumption Equivalence", xlabel = "Agent Age",label = "")
-    savefig(EV_plot, "output/EV_TP_"*experiment*"_"*string(TPs)*".png")
+    EV_u, EV_age_u, voters_in_favor_u = calculate_EV(pt, tp_u, r0) # calculate consumption equivalence variation objects
+    EV_a, EV_age_a, voters_in_favor_a = calculate_EV(pt, tp_a, r0) # calculate consumption equivalence variation objects
 
-    voters_plot = plot([voters_in_favor], title = "Fraction of Voters Supporting Policy", xlabel = "Agent Age", label = "")
-    savefig(voters_plot, "output/voters_TP_"*experiment*"_"*string(TPs)*".png")
+    # based on results, the TP length of anticipated shock will be longer than
+    # the unanticipated shock TP. this is not great coding practice, but i'm
+    # hard coding this fix - get the transition path of anticated shock only up
+    # to the TP length of the unanticipated shock
+    tp_a.K_TP = tp_a.K_TP[1:TPs]
+    tp_a.L_TP = tp_a.L_TP[1:TPs]
+    tp_a.w_TP = tp_a.w_TP[1:TPs]
+    tp_a.r_TP = tp_a.r_TP[1:TPs]
+
+    # make plots for K, L, r, w, EV_age, voters in support of policy, by transition period
+    # for each plot, append the steady state for time 0 to the solved transition path
+    K_data = [vcat(p0.K_0, tp_u.K_TP) vcat(p0.K_0, tp_a.K_TP) repeat([p0.K_0], TPs+1) repeat([pT.K_0], TPs+1)]
+    L_data = [vcat(p0.L_0, tp_u.L_TP) vcat(p0.L_0, tp_a.L_TP) repeat([p0.L_0], TPs+1) repeat([pT.L_0], TPs+1)]
+    r_data = [vcat(p0.r*100, tp_u.r_TP*100) vcat(p0.r*100, tp_a.r_TP*100) repeat([p0.r*100], TPs+1) repeat([pT.r*100], TPs+1)]
+    w_data = [vcat(p0.w, tp_u.w_TP) vcat(p0.w, tp_a.w_TP) repeat([p0.w], TPs+1) repeat([pT.w], TPs+1)]
+    EV_data = [EV_age_u EV_age_a]
+    voter_data = [voters_in_favor_u voters_in_favor_a]
+
+    data_label = ["TP Unanticipated" "TP Anticipated" "SS w/ θ > 0" "SS w/ θ = 0"]
+    EV_label = ["TP Unanticipated" "TP Anticipated"]
+    experiment = "both"
+
+    make_plots(K_data, L_data, r_data, w_data, EV_data, voter_data, data_label, EV_label, experiment, tp_u)
 
 end
