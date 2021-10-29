@@ -27,7 +27,7 @@ include("TP_and_functions.jl")
 
 # compute steady states if not already computed and stored
 if isfile("data/steady_states/steady_state_T.jld") == false &&
-    isfile("data/steady_states/steady_state_0.jld")
+    isfile("data/steady_states/steady_state_0.jld") == false
     p0, r0, w0, cv0 = solve_model()           # solve θ = 0.11 model - with soc security
     pT, rT, wT, cvT = solve_model(θ_0 = 0.0)  # solve θ = 0 model    - with no soc security
 
@@ -61,4 +61,4 @@ save("data/transition_paths/anticipated_transition_path.jld", "tp_a_saved", tp_a
 # ------------------------------------------------------------------------ #
 summarize_results("unanticipated", tp_u, r0, p0)
 summarize_results("anticipated", tp_a, r0, p0)
-compare_results(tp_u, tp_a, r0, p0) 
+compare_results(tp_u, tp_a, r0, p0)
