@@ -30,8 +30,8 @@
     δ::Float64 = 0.025              # capital depreciation rate
 
     k_lb::Float64 = 0.001           # capital lower bound
-    k_ub::Float64 = 20.0            # capital upper bound
-    n_k::Int64 = 21                 # capital grid size
+    k_ub::Float64 = 25              # capital upper bound
+    n_k::Int64 = 26                 # capital grid size
     k_grid::Array{Float64,1} = range(k_lb, stop = k_ub, length = n_k)
 
     K_lb::Float64 = 10.0            # aggregate capital lower bound
@@ -58,7 +58,7 @@ end
     N::Int64          = 5000         # number of employment shocks to draw per aggregate economy shock
     burn::Int64       = 1000         # number of initial periods to ignore
 
-    tol_vfi::Float64 = 1e-4
+    tol_vfi::Float64  = 1e-4
     tol_coef::Float64 = 1e-4
     tol_r2::Float64   = 1.0 - 1e-2      # tolerance value for overall convergence
     max_iters::Int64  = 10000        # max number of iterations to run
@@ -510,13 +510,13 @@ function estimate_regression(K_path::Array{Float64, 2}, algo::Algorithm, res::Re
     good_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_g)
     a0_new = coef(good_state)[1]    # extra coefficients
     a1_new = coef(good_state)[2]
-    res.R2[1] = r2(good_state)      # get model fit R^2 estimate
+    res.R2[1] = adjr2(good_state)      # get model fit R^2 estimate
 
     # bad state regression
     bad_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_b)
     b0_new = coef(bad_state)[1]    # extra coefficients
     b1_new = coef(bad_state)[2]
-    res.R2[2] = r2(bad_state)      # get model fit R^2 estimate
+    res.R2[2] = adjr2(bad_state)      # get model fit R^2 estimate
 
     a0_new, a1_new, b0_new, b1_new # return estimates
 end
