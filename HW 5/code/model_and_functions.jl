@@ -30,8 +30,8 @@
     δ::Float64 = 0.025              # capital depreciation rate
 
     k_lb::Float64 = 0.001           # capital lower bound
-    k_ub::Float64 = 25              # capital upper bound
-    n_k::Int64 = 26                 # capital grid size
+    k_ub::Float64 = 20              # capital upper bound
+    n_k::Int64 = 21                 # capital grid size
     k_grid::Array{Float64,1} = range(k_lb, stop = k_ub, length = n_k)
 
     K_lb::Float64 = 10.0            # aggregate capital lower bound
@@ -128,7 +128,7 @@ mutable struct Results
     a1::Float64
     b0::Float64                 # regression coefficients for bad state
     b1::Float64
-    R2::Array{Float64, 1}       # R^2 values for model fit evaluation
+    R2::Float64                 # R^2 values for model fit evaluation
 end
 
 
@@ -211,7 +211,7 @@ function initialize_results(prim::Primitives)
     a1 = 0.999
     b0 = 0.085 # regression coefficients for bad state; initialize with guess given by handout
     b1 = 0.999
-    R2 = zeros(n_z) # R^2 value for model fit evaluation (one for each regression)
+    R2 = 0     # R^2 value for model fit evaluation (one for each regression)
 
     res = Results(pol_func, val_func, a0, a1, b0, b1, R2)
     res # return initilized struct
@@ -367,7 +367,7 @@ function bellman(prim::Primitives, res::Results, shocks::Shocks)
             for (i_ϵ, ϵ_today) in enumerate(ϵ_grid)   # for each idiosyncratic employment state
                 row = i_ϵ + n_ϵ*(i_z-1)               # get index for markov transition matrix
 
-                L_today = calc_L(i_z, ϵ_h, shocks)          # get aggregate L
+                L_today = calc_L(i_z, ϵ_h, shocks)              # get aggregate L
                 w_today = calc_w(K_today, L_today, z_today, α)  # get wage rate
                 r_today = calc_r(K_today, L_today, z_today, α)  # get interest rate
 
@@ -462,7 +462,7 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
             ϵ_shock = ϵ_seq[person_index, time] # draw idiosyncratic shock for person and time
 
             pol_z_ϵ = pol_func[:, Integer(ϵ_shock), :, Integer(z_shock)]  # get policy function for z, ϵ
-            k_interp = interpolate(pol_z_ϵ, BSpline(Linear()))             # define interpolation function for k
+            k_interp = interpolate(pol_z_ϵ, BSpline(Linear()))            # define interpolation function for k
 
             i_k = get_index(k_yesterday[person_index], k_grid) # get index of yesterday's capital for person
             i_K = get_index(K_yesterday, K_grid)               # get index of yesterday's aggregate capital
@@ -507,16 +507,37 @@ function estimate_regression(K_path::Array{Float64, 2}, algo::Algorithm, res::Re
     K_path_b = filter(:z_today => z_today -> z_today == 2, K_path_df) # bad state
 
     # good state regression
-    good_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_g)
-    a0_new = coef(good_state)[1]    # extra coefficients
-    a1_new = coef(good_state)[2]
-    res.R2[1] = adjr2(good_state)      # get model fit R^2 estimate
+    #good_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_g)
+    #a0_new = coef(good_state)[1]    # extra coefficients
+    #a1_new = coef(good_state)[2]
+    #res.R2[1] = adjr2(good_state)      # get model fit R^2 estimate
 
     # bad state regression
-    bad_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_b)
-    b0_new = coef(bad_state)[1]    # extra coefficients
-    b1_new = coef(bad_state)[2]
-    res.R2[2] = adjr2(bad_state)      # get model fit R^2 estimate
+    #bad_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_b)
+    #b0_new = coef(bad_state)[1]    # extra coefficients
+    #b1_new = coef(bad_state)[2]
+    #res.R2[2] = adjr2(bad_state)      # get model fit R^2 estimate
+
+    # good state regression
+    X_g = [ones(size(K_path_g)[1]) log.(K_path_g.K_today)]
+    Y_g = log.(K_path_g.K_tomorrow)
+
+    a0_new, a1_new = (X_g' * X_g) \ X_g' * Y_g
+    Y_g_hat = a0_new .+ a1_new .* log.(K_path_g.K_today)
+    rss_g = sum((Y_g - Y_g_hat).^2)
+    tss_g = sum((Y_g .- mean(Y_g)).^2)
+
+    # bad state regression
+    X_b = [ones(size(K_path_b)[1]) log.(K_path_b.K_today)]
+    Y_b = log.(K_path_b.K_tomorrow)
+
+    b0_new, b1_new = (X_b' * X_b) \ X_b' * Y_b
+    Y_b_hat = b0_new .+ b1_new .* log.(K_path_b.K_today)
+    rss_b = sum((Y_b - Y_b_hat).^2)
+    tss_b = sum((Y_b .- mean(Y_b)).^2)
+
+    # R2
+    res.R2 = 1 - ((rss_g + rss_b)/(tss_g + tss_b))
 
     a0_new, a1_new, b0_new, b1_new # return estimates
 end
