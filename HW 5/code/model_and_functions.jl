@@ -139,7 +139,7 @@ function draw_shocks(shocks::Shocks, algo::Algorithm)
     @unpack N, T = algo
     @unpack p_gg, p_bb, π_gg, π_gb, π_bg, π_bb = shocks
 
-    Random.seed!(12345678) # set seed
+    Random.seed!(12032020) # set seed
     dist = Distributions.Uniform(0, 1) # distribution to draw shocks from
 
     z_state = zeros(T)   # sequence of economy/aggregate shocks
@@ -467,7 +467,7 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
             i_k = get_index(k_yesterday[person_index], k_grid) # get index of yesterday's capital for person
             i_K = get_index(K_yesterday, K_grid)               # get index of yesterday's aggregate capital
 
-            k_yesterday[person_index] = k_interp(i_k, i_K) # interpolate k today (store into array for tomorrow)
+            k_yesterday[person_index] = k_interp(i_k, i_K)
             K_today += k_yesterday[person_index]           # add k to aggregate K today
         end
 
@@ -505,18 +505,6 @@ function estimate_regression(K_path::Array{Float64, 2}, algo::Algorithm, res::Re
     K_path_df = DataFrame("K_today" => K_path[:, 1], "K_tomorrow" => K_path[:, 2], "z_today" => K_path[:, 3])
     K_path_g = filter(:z_today => z_today -> z_today == 1, K_path_df) # good state
     K_path_b = filter(:z_today => z_today -> z_today == 2, K_path_df) # bad state
-
-    # good state regression
-    #good_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_g)
-    #a0_new = coef(good_state)[1]    # extra coefficients
-    #a1_new = coef(good_state)[2]
-    #res.R2[1] = adjr2(good_state)      # get model fit R^2 estimate
-
-    # bad state regression
-    #bad_state = lm(@formula(log(K_tomorrow) ~ log(K_today)), K_path_b)
-    #b0_new = coef(bad_state)[1]    # extra coefficients
-    #b1_new = coef(bad_state)[2]
-    #res.R2[2] = adjr2(bad_state)      # get model fit R^2 estimate
 
     # good state regression
     X_g = [ones(size(K_path_g)[1]) log.(K_path_g.K_today)]
@@ -563,7 +551,7 @@ function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
         res.b1 = b1_new
 
         println("-----------------------------------------------------------------------")
-        @printf " Converged after %d iterations with R2 values %.3f (g) and %.3f (b)\n" iter res.R2[1] res.R2[2]
+        @printf " Converged after %d iterations with R2 = %.3f\n" iter res.R2
         @printf " Coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" res.a0 res.a1 res.b0 res.b1
         println("-----------------------------------------------------------------------")
 
@@ -575,7 +563,7 @@ function check_convergence(res::Results, algo::Algorithm, a0_new::Float64,
         res.b1 = λ * b1_new + (1-λ) * b1
 
         println("-----------------------------------------------------------------------")
-        @printf " Continuing ... to iteration %d with R2 values %.3f (g) and %.3f (b)\n" iter+1 res.R2[1] res.R2[2]
+        @printf " Continuing ... to iteration %d with R2 = %.3f\n" iter+1 res.R2
         @printf "     Old coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0 a1 b0 b1
         @printf "     New coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" a0_new a1_new b0_new b1_new
         @printf " Updated coefficients: a0 = %.3f, a1 = %.3f, b0 = %.3f, b1 = %.3f\n" res.a0 res.a1 res.b0 res.b1
