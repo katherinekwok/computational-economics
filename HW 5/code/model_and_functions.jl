@@ -79,12 +79,15 @@ end
     u_b::Float64 = 0.1     # fraction of employed population in bad times
 
 
+    # NOTE: In the Krusell Smith handout, it says that given average duration
+    # of good and bad times are 8 quarters, then p_gg = p_bb = 1 - 1/8 = 0.875
+    # This is why we do the following:
+
     # transition probabilities for economy/aggregate state (good times vs. bad times)
     p_gg::Float64 = (g_dura-1.0)/g_dura   # prob of good times to good times
     p_bb::Float64 = (b_dura-1.0)/b_dura   # prob of bad times to bad times
     p_gb::Float64 = 1.0 - p_bb            # prob of good times to bad times
     p_bg::Float64 = 1.0 - p_gg            # prob of bad times to good times
-
 
     # transition probabilities for economy/aggregate states and STAYING UNEMPLOYED
     p_gg00::Float64 = (ug_dura-1.0)/ug_dura
@@ -147,7 +150,6 @@ function draw_shocks(shocks::Shocks, algo::Algorithm)
 
     z_state[1] = 1       # initialize: assume we start with z_g (good economy/aggregate state)
     ϵ_state[ : , 1] .= 1 # initialize: assume for first z state, everyone is employed
-
 
     for t = 2:T # for length of z shock sequence (from 2 onwards)
         z_shock = rand(dist) # draw a z shock
@@ -315,34 +317,34 @@ function interpolate_bellman(shocks::Shocks, prim::Primitives, res::Results,
     ϵ_today::Float64)
 
     @unpack Π = shocks
-    @unpack δ, β, k_grid = prim
+    @unpack δ, β, k_grid, k_lb = prim
     @unpack val_func = res
 
     k_interp = interpolate(k_grid, BSpline(Linear()))   # define interpolation function for k
     v_interp = interpolate(val_func, BSpline(Linear())) # define interpolation function for v
 
-    # We are defining the continuation value. Notice that we are interpolating over k and K.
+    # continutation value is the interpolated value over k choice and K tomorrow,
+    # multiplied by transition probability of z and ϵ states
     v_tomorrow(i_kp) = Π[row,1]*v_interp(i_kp,1,i_Kp,1) +
                        Π[row,2]*v_interp(i_kp,2,i_Kp,1) +
                        Π[row,3]*v_interp(i_kp,1,i_Kp,2) +
                        Π[row,4]*v_interp(i_kp,2,i_Kp,2)
 
-
-    # We are now going to solve the HH's problem (solve for k).
-    # We are defining a function val_func as a function of the agent's capital choice.
+    # household budget
     budget = r_today * k_today + w_today * ϵ_today + (1.0 - δ) * k_today
+
+    # define value function given k choice
     val_func(i_kp) = utility(budget - k_interp(i_kp)) +  β * v_tomorrow(i_kp)
 
-    obj(i_kp) = -val_func(i_kp)                # minimization problem
-    lowerbound = 1.0
-    upperbound = get_index(budget, k_grid)
+    # define objective function: minimize negative value func = maximize value func
+    obj(i_kp) = -val_func(i_kp)
+    lowerbound = 1.0                            # set bounds for optimizing value function
+    upperbound = get_index(budget, k_grid)      # from k lowerbound to budget
 
-    # Then, we are going to maximize the value function using an optimization routine.
-    # Note: Need to call in optimize to use this package.
-    opt = optimize(obj, lowerbound, upperbound)
+    opt = optimize(obj, lowerbound, upperbound) # implement optimization of value function
 
-    k_tomorrow = k_interp(opt.minimizer[1])
-    v_today = -opt.minimum
+    k_tomorrow = k_interp(opt.minimizer[1])     # k choice that optimizes value function
+    v_today = -opt.minimum                      # optimal value 
 
     k_tomorrow, v_today
 end
