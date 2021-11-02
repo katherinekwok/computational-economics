@@ -273,25 +273,26 @@ function calc_K(z_state::Int64, K_today::Float64, res::Results)
 end
 
 # calc_L: This function calculates the aggregate L using ϵ and z today
-function calc_L(z_state::Int64, ϵ_today::Float64, shocks::Shocks)
+function calc_L(z_state::Int64, shocks::Shocks, prim::Primitives)
     @unpack u_g, u_b = shocks
+    @unpack ϵ_h = prim # get the e_bar value
 
     if z_state == 1
-        L_today = ϵ_today * (1 - u_g)
+        L_today = ϵ_h * (1 - u_g)
     elseif z_state == 2
-        L_today = ϵ_today * (1 - u_b)
+        L_today = ϵ_h * (1 - u_b)
     end
     L_today
 end
 
 # calc_r: This function returns the interest rate r given K, L, z
 function calc_r(K::Float64, L::Float64, z::Float64, α::Float64)
-    (1-α) * z * (K/L)^α
+    α * z * (K/L)^(α-1)
 end
 
 # calc_w: This function returns the wage rate w given K, L, z
 function calc_w(K::Float64, L::Float64, z::Float64, α::Float64)
-    α * z * (K/L)^(α-1)
+    (1-α) * z * (K/L)^α
 end
 
 # utility: This is the utility function
@@ -350,7 +351,7 @@ end
 #          programming problem, using interpolation and function minimization.
 function bellman(prim::Primitives, res::Results, shocks::Shocks)
 
-    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid, α, ϵ_h = prim
+    @unpack n_k, n_ϵ, n_K, n_z, k_grid, ϵ_grid, K_grid, z_grid, α, K_lb, K_ub = prim
     @unpack pol_func, val_func = res
 
     pol_func_up = zeros(n_k, n_ϵ, n_K, n_z) # initialize array to updated pol and val func
@@ -360,14 +361,14 @@ function bellman(prim::Primitives, res::Results, shocks::Shocks)
         for (i_K, K_today) in enumerate(K_grid)  # for each aggregate capital today
 
             # calculate mean K tomorrow using law of motion
-            K_tomorrow = calc_K(i_z, K_today, res)
+            K_tomorrow = max(min(calc_K(i_z, K_today, res), K_ub), K_lb)
             # get index of K tomorrow in K grid (likely not an integer!)
             i_Kp = get_index(K_tomorrow, K_grid)
 
             for (i_ϵ, ϵ_today) in enumerate(ϵ_grid)   # for each idiosyncratic employment state
                 row = i_ϵ + n_ϵ*(i_z-1)               # get index for markov transition matrix
 
-                L_today = calc_L(i_z, ϵ_h, shocks)              # get aggregate L
+                L_today = calc_L(i_z, shocks, prim)             # get aggregate L
                 w_today = calc_w(K_today, L_today, z_today, α)  # get wage rate
                 r_today = calc_r(K_today, L_today, z_today, α)  # get interest rate
 
@@ -455,7 +456,11 @@ function simulate_capital_path(prim::Primitives, res::Results, algo::Algorithm,
     println("-----------------------------------------------------------------------")
 
 
-    for time in 1:T
+    # fill in first period
+    K_path[1, 1] = K_ss
+    K_path[1, 3] = 1
+
+    for time in 2:T
         z_shock = z_seq[time]   # draw economy/aggregate shocks
 
         for person_index in 1:N
@@ -525,7 +530,7 @@ function estimate_regression(K_path::Array{Float64, 2}, algo::Algorithm, res::Re
     tss_b = sum((Y_b .- mean(Y_b)).^2)
 
     # R2
-    res.R2 = 1 - ((rss_g + rss_b)/(tss_g + tss_b))
+    res.R2 = 1.0 - ((rss_g + rss_b)/(tss_g + tss_b))
 
     a0_new, a1_new, b0_new, b1_new # return estimates
 end
