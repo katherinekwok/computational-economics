@@ -9,6 +9,8 @@
 #   (0) set up strucs and functions to initialize
 #   (1) solve for entry market clearing price
 #   (2) solve for labor market clearing labor demand and supply
+#   (3) display and plot results 
+
 
 # ------------------------------------------------------------------------ #
 #  (0) initialize algorithm
@@ -31,3 +33,8 @@
 # solve for stationary distribution
 
 # solve for labor demand and supply
+
+
+# ------------------------------------------------------------------------ #
+#  (3) display and plot results
+# ------------------------------------------------------------------------ #
