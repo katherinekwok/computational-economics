@@ -1,6 +1,6 @@
 #delimit;
 set more off;
-cd "~/Dropbox/Teaching/Computational economics/PS/PS1/";
+cd "~/Dropbox/UW Madison/Second Year/899 - Computational/computational-economics/HW 8/"
 
 use Mortgage_performance_data;
 
