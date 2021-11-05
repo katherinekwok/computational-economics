@@ -7,10 +7,13 @@
 #   (1) Calculate log-likelihood, score of log-likelihood function, and Hessian on β_0 = -1 and β = 0
 #   (2) Compare (1) with first and second numerical derivative of the log-likelihood
 #   (3) Solve the maximum likelihood problem using a Newton-based algoritm.
+#   (4) Compare with BFGS and Simplex
 
-using Parameters, Plots, Printf, LinearAlgebra         # load standard packages
-using StatFiles, DataFrames                            # load packages for handling data
-using ForwardDiff
+
+using Parameters, Plots, Printf, LinearAlgebra # load standard packages
+using StatFiles, DataFrames                    # load packages for handling data
+using FiniteDiff, Optim                        # load package for numerical derivatives and optimization
+using Latexify                                 # load package for outputting results
 
 # load in data set
 dt = DataFrame(load("Mortgage_performance_data.dta"))
@@ -82,8 +85,17 @@ test_hessian = hessian(X, β)
 # ---------------------------------------------------------------------------- #
 # (2) Compare (1) with first and second numerical derivative of the log-likelihood
 # ---------------------------------------------------------------------------- #
+verify_foc = FiniteDiff.finite_difference_gradient(β -> log_likelihood(X, Y, β), β)
+compare_focs = DataFrame(manual_foc = round.(test_score, digits = 2), verify_foc = round.(verify_foc, digits = 2))
+latexify(compare_focs, env = :table) |> print
 
-validate_score = X -> ForwardDiff.gradient(log_likelihood, X)
+verify_hessian = FiniteDiff.finite_difference_hessian(β -> log_likelihood(X, Y, β), β)
+
+verify_hessian = round.(verify_hessian, digits = 1)
+latexify(verify_hessian, env = :table) |> print
+test_hessian = round.(test_hessian, digits = 1)
+latexify(test_hessian, env = :table) |> print
+
 
 # ---------------------------------------------------------------------------- #
 # (3) Solve the maximum likelihood problem using a Newton-based algoritm.
@@ -94,11 +106,11 @@ validate_score = X -> ForwardDiff.gradient(log_likelihood, X)
 
 converged = 0   # convergence flag
 tol = 10e-12    # tolerance value
-s = 0.5
-iter = 1
+s = 0.5         # adjustment step
+iter = 1        # iteration counter
 
 while converged == 0
-    β_k = β_k_prev .- s * hessian(X, β_k_prev)^(-1) * score(X, Y, β_k_prev)''
+    β_k = β_k_prev .- s * hessian(X, β_k_prev)^(-1) * score(X, Y, β_k_prev)'
 
     max_diff = maximum(abs.(β_k_prev .- β_k))
     if max_diff < tol
@@ -109,3 +121,7 @@ while converged == 0
     println(β_k)
     β_k_prev = β_k
 end
+
+# ---------------------------------------------------------------------------- #
+# (4) Compare with BFGS and Simplex
+# ---------------------------------------------------------------------------- #
