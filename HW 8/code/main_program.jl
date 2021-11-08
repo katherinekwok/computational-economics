@@ -1,26 +1,27 @@
 # Author: Katherine Kwok
 # Date: November 8, 2021
 
-# This file contains the code for Problem Set 1 (for JF's portion)/Problem Set 8 overall
-# The main program does the following:
-#
+# This file contains the code for Problem Set 1 (for JF's portion) a.k.a.
+# Problem Set 8 overall. The main program does the following:
+
+#   (0) Load in data
 #   (1) Calculate log-likelihood, score of log-likelihood function, and Hessian on β_0 = -1 and β = 0
 #   (2) Compare (1) with first and second numerical derivative of the log-likelihood
 #   (3) Solve the maximum likelihood problem using a Newton-based algoritm.
 #   (4) Compare with BFGS and Simplex
 
 
-using Parameters, Plots, Printf, LinearAlgebra # load standard packages
+using Parameters, Plots, Printf, LinearAlgebra, Printf # load standard packages
 using StatFiles, DataFrames                    # load packages for handling data
 using FiniteDiff, Optim                        # load package for numerical derivatives and optimization
 using Latexify                                 # load package for outputting results
-
-# load in data set
-dt = DataFrame(load("Mortgage_performance_data.dta"))
+include("helper_functions.jl")
 
 # ---------------------------------------------------------------------------- #
-# (1) Calculate log-likelihood, score of log-likelihood function, and Hessian on β_0 = -1 and β = 0
+# (0) Load in data
 # ---------------------------------------------------------------------------- #
+
+dt = DataFrame(load("Mortgage_performance_data.dta")) # load in data set
 
 # variable definition
 x_vars = ["i_large_loan", "i_medium_loan", "rate_spread", "i_refinance", "age_r",
@@ -32,65 +33,32 @@ X = Array(select(dt, x_vars))  # select independent variables
 Y = Array(select(dt, y_vars))  # select dependent variable
 
 
-# log-likelihood
+# ---------------------------------------------------------------------------- #
+# (1) Calculate log-likelihood, score of log-likelihood function, and Hessian on β_0 = -1 and β = 0
+# ---------------------------------------------------------------------------- #
 
-# logit: This function uses the logit function to calculate the probability of
-#        the outcome Y = 1 given variables X and coefficients β
-function logit(X, β)
-    exp(X' * β)/(1 + exp(X' * β))
-end
+# Evaluate at β_0 = -1 and all other β = 0
+β_init = vcat(-1, zeros(size(X)[2]-1))
 
-# log_likelihood: This function evaluates the log likelihood using the logit
-#                 function.
-function log_likelihood(X, Y, β)
-    output = 0.0
-
-    for i in 1:size(X)[1]
-        product = logit(X[i, :], β)^Y[i] * (1-logit(X[i, :], β))^(1-Y[i])
-
-        if product > 0
-            output += log(product)
-        end
-    end
-    output
-end
-
-# score: This function evaluates the score of the log-likelihood function
-function score(X, Y, β)
-    output = zeros(size(X)[2]) # score
-
-    for i_person in 1:size(X)[1]
-        output .+= (Y[i_person] - logit(X[i_person, :], β)) .* X[i_person, :]
-    end
-    output
-end
-
-# hessian: This function evaluates the hessian
-function hessian(X, β)
-    output = fill(0, size(X)[2], size(X)[2])
-
-    for i in 1:size(X)[1]
-        output += logit(X[i, :], β) * (1-logit(X[i, :], β)) * X[i, :] * X[i, :]'
-    end
-    -output
-end
-
-# Evaluate at β_0 = -1 and β = 0
-β = vcat(-1, zeros(size(X)[2]-1))
-
-test = log_likelihood(X, Y, β)
-test_score = score(X, Y, β)
-test_hessian = hessian(X, β)
+test = log_likelihood(X, Y, β_init)
+test_score = score(X, Y, β_init)
+test_hessian = hessian(X, β_init)
 
 # ---------------------------------------------------------------------------- #
 # (2) Compare (1) with first and second numerical derivative of the log-likelihood
 # ---------------------------------------------------------------------------- #
-verify_foc = FiniteDiff.finite_difference_gradient(β -> log_likelihood(X, Y, β), β)
+
+# calculate numerical first derivative
+verify_foc = FiniteDiff.finite_difference_gradient(β_init -> log_likelihood(X, Y, β_init), β_init)
+
+# output comparison with score of log likelihood
 compare_focs = DataFrame(manual_foc = round.(test_score, digits = 2), verify_foc = round.(verify_foc, digits = 2))
 latexify(compare_focs, env = :table) |> print
 
-verify_hessian = FiniteDiff.finite_difference_hessian(β -> log_likelihood(X, Y, β), β)
+# calculate numerical second derivative
+verify_hessian = FiniteDiff.finite_difference_hessian(β_init -> log_likelihood(X, Y, β_init), β_init)
 
+# output comparison with hessian
 verify_hessian = round.(verify_hessian, digits = 1)
 latexify(verify_hessian, env = :table) |> print
 test_hessian = round.(test_hessian, digits = 1)
@@ -101,27 +69,20 @@ latexify(test_hessian, env = :table) |> print
 # (3) Solve the maximum likelihood problem using a Newton-based algoritm.
 # ---------------------------------------------------------------------------- #
 
-β_0 = vcat(-1, zeros(size(X)[2]-1)) # initial guess
-β_k_prev = β_0
-
-converged = 0   # convergence flag
-tol = 10e-12    # tolerance value
-s = 0.5         # adjustment step
-iter = 1        # iteration counter
-
-while converged == 0
-    β_k = β_k_prev .- s * hessian(X, β_k_prev)^(-1) * score(X, Y, β_k_prev)'
-
-    max_diff = maximum(abs.(β_k_prev .- β_k))
-    if max_diff < tol
-        converged = 1
-        println(β_k)
-    end
-
-    println(β_k)
-    β_k_prev = β_k
-end
+β_init = vcat(-1, zeros(size(X)[2]-1)) # initial guess
+β_newton = @time newton_algo(X, β_init)
 
 # ---------------------------------------------------------------------------- #
 # (4) Compare with BFGS and Simplex
 # ---------------------------------------------------------------------------- #
+
+# NOTE: (1) Attempted to use initial values β_init and optimization fails. This
+#           is because the optimization is sensitive to initialize values. The
+#           optimization works if we initialize using results from Newton method
+#           (β_newton).
+#
+#       (2) Since the optimize() function minimizes a given objective function,
+#           we want to pass in the negative likelihood function.
+β_simplex = @time optimize(β -> -log_likelihood(X, Y, β), β_newton, NelderMead())
+
+β_bfgs = @time optimize(β -> -log_likelihood(X, Y, β), β_newton, BFGS())
