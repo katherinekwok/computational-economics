@@ -85,4 +85,13 @@ latexify(test_hessian, env = :table) |> print
 #           we want to pass in the negative likelihood function.
 β_simplex = @time optimize(β -> -log_likelihood(X, Y, β), β_newton, NelderMead())
 
-β_bfgs = @time optimize(β -> -log_likelihood(X, Y, β), β_newton, BFGS())
+
+# NOTE: Using automatic differentiation speeds up computation significantly
+
+β_bfgs = @time optimize(β -> -log_likelihood(X, Y, β), β -> -score(X, Y, β), β_newton, BFGS(); inplace = false)
+
+# output results
+compare_β = DataFrame(beta_newton = round.(β_newton, digits = 2),
+                      beta_bfgs = round.(Optim.minimizer(β_bfgs), digits = 2),
+                      beta_simplex = round.(Optim.minimizer(β_simplex), digits = 2))
+latexify(compare_β, env = :table) |> print

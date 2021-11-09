@@ -1,0 +1,59 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin = 0.6in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\de}{\mathrm{d}}
+\newcommand{\one}{\mathds{1}}
+
+\title{ECON 899b: Problem Set 1}
+\author{Katherine Kwok\footnote{I collaborated with Anya Tarascina and Claire Kim on this assignment.}}
+\date{November 2021}
+
+\begin{document}
+
+\maketitle
+\noindent \textbf{Overview:} For this assignment, the goal is to apply different methods of optimization for discrete choice models. In particular, we use the public use microdata on mortgages to study the log-likelihood of the loan being pre-paid within the first-year. \\\\
+
+\noindent \textbf{Findings:} The attached code (``main\_program.jl" and ``helper\_functions.jl") produces the results described below. In the first step, I wrote functions to evaluate log-likelihood, the score of the log-likelihood function (approximation of the FOC), and the Hessian matrix (approximation of SOC) given some $\beta$ vector. Specifically, $\beta_0 = -1$ and all other $\beta$ values in the vector are 0. Then, I use the numerical derivative method in Julia to calculate the FOC and SOC of the log-likelihood function at the same $\beta$ values. The comparison between the score and Hessian, and the numerical derivatives, are summarized in Tables \ref{tab2}, \ref{tab:first}, \ref{tab:second}. It appears that the approximations and numerical derivatives are very similar and/or identical. \\\\
+Then, I wrote a Newton algorithm that solves for maximum likelihood, and compared the resulting coefficients to that of the BFGS (Quasi-Newton) and Simplex algorithms. Using the initial guess, the Newton algorithm converged in 37 iterations and approximately 12 seconds. The results of the algorithm are summarized in Table \ref{tab1} below. \\\\
+The implementation of the BFGS algorithm was slightly more complicated. Without providing a gradient function, the algorithm took a very long time to converge. When I input the score of the log-likelihood as the gradient and used the resulting $\beta$ values from the Newton algorithm as the initial guess, the algorithm converged in 3 iterations and approximately 1 second. I used an educated guess for the initial value, because the simple initial values result in nonsensical results. \\\\
+Similar to the BFGS algorithm, I was only able to get the Simplex algorithm to converge when I used the Newton algorithm results as the initial values. When I attempted to run the optimization without a refined initial guess, the optimization package returned a ``failed line search" message. With an educated guess, the Simplex algorithm converged in 694 iterations, and approximately 140 seconds. \\\
+Comparing the $\beta$ results from all 3 algorithms, the coefficients appear to be very similar.
+
+\include{compare_focs}
+\include{compare_betas}
+
+
+
+\begin{landscape}
+    \begin{table}[!htbp]
+    \centering \tiny
+    \caption{Hessian Matrix for Log Likelihood Function}\label{tab:first}
+    \include{hessian}
+    \bigskip
+    \caption{Numerical Second Derivative}\label{tab:second} \par \medskip
+    \include{numerical_soc}
+    \end{table}
+\end{landscape}
+
+
+
+\end{document}
+
