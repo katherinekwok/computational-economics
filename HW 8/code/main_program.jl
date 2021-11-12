@@ -29,7 +29,9 @@ x_vars = ["i_large_loan", "i_medium_loan", "rate_spread", "i_refinance", "age_r"
           "i_open_year2", "i_open_year3", "i_open_year4", "i_open_year5"]
 y_vars = ["i_close_first_year"]
 
+constant = ones(size(dt)[1])
 X = Array(select(dt, x_vars))  # select independent variables
+X = hcat(constant, X)
 Y = Array(select(dt, y_vars))  # select dependent variable
 
 
