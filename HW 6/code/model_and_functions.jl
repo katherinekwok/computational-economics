@@ -106,7 +106,15 @@ end
 #  (1) solve for entry market clearing price
 # ------------------------------------------------------------------------ #
 
-# solve value function iteration
+# calc_profit: This is a function that calculates profit for a given firm
+function calc_profit(p::Float64, s_val::Float64, labor::Float64, θ::Float64, c_f::Float64)
+    p * s_val * (labor^θ) - labor - p * c_f
+end
+
+# calc_labor: This is a function that calculates the firm's labor demand
+function calc_labor(p::Float64, s_val::Float64, θ::Float64)
+    max(0, (p * θ * s_val)^(1/(1-θ)))
+end
 
 # bellman: This function encodes the firm's bellman function (benchmark, without
 #          any action-specific shocks).
@@ -122,8 +130,8 @@ function bellman(prim::Primitives, res::Results)
     for (s_index, s_val) in enumerate(s)     # loop through productivity states
         s_prob = s_trans_mat[s_index, :]     # get transition probabilities for current state
 
-        labor = max(0, (p * θ * s_val)^(1/(1-θ)))           # optimal labor choice given s
-        profit = p * s_val * (labor^θ) - labor - p * c_f    # profit given s
+        labor = calc_labor(p, s_val, θ)                     # optimal labor choice given s
+        profit = calc_profit(p, s_val, labor, θ, c_f)       # profit given s
 
         v_stay = profit + β * s_prob' * val_func            # value for staying tomorrow
         v_exit = profit                                     # value for exiting tomorrow
@@ -149,8 +157,8 @@ function bellman_shocks(prim::Primitives, res::Results, α::Int64)
     for (s_index, s_val) in enumerate(s)     # loop through productivity states
         s_prob = s_trans_mat[s_index, :]     # get transition probabilities for current state
 
-        labor = max(0, (p * θ * s_val)^(1/(1-θ)))           # optimal labor choice given s
-        profit = p * s_val * (labor^θ) - labor - p * c_f    # profit given s
+        labor = calc_labor(p, s_val, θ)                     # optimal labor choice given s
+        profit = calc_profit(p, s_val, labor, θ, c_f)       # profit given s
 
         v_stay = profit + β * s_prob' * val_func            # value for staying tomorrow
         v_exit = profit                                     # value for exiting tomorrow
@@ -260,8 +268,8 @@ end
 #                   states to get the distribution of firms that stay and enter given
 #                   the state today and tomorrow.
 function update_stat_dist(prim::Primitives, res::Results)
-    @unpack n_s, s_trans_mat = prim
-    @unpack val_func, m = res
+    @unpack s, n_s, s_trans_mat, entrant_dist = prim
+    @unpack val_func, m, stat_dist = res
 
     stay_dist = zeros(n_s)  # initiate update distribution for staying firms
     enter_dist = zeros(n_s) # initiative update distribution for entering firms
@@ -272,7 +280,7 @@ function update_stat_dist(prim::Primitives, res::Results)
         for (sp_i, sp_val) in enumerate(s)
 
             # transition probability of firm staying given state
-            stay_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*res.stat_dist[s_i]
+            stay_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*stat_dist[s_i]
             # transition probability of firm entering given state
             enter_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*entrant_dist[s_i]
         end
@@ -282,7 +290,9 @@ function update_stat_dist(prim::Primitives, res::Results)
     stay_dist .+ (m .* enter_dist)
 end
 
-# solve_stat_dist: This function solves for the stationary distribution
+# solve_stat_dist: This function solves for the stationary distribution, basically
+#                  by updating the distribution using the solved value function
+#                  until convergence.
 function solve_stat_dist(prim::Primitives, res::Results; tol = 1e-5)
     converged = 0
     n = 0
@@ -298,11 +308,36 @@ function solve_stat_dist(prim::Primitives, res::Results; tol = 1e-5)
         n+=1
     end
     println("-----------------------------------------------------------------------")
-    @printf "      Solving stationary distribution converged in %d iterations\n" n 
+    @printf "      Solving stationary distribution converged in %d iterations\n" n
     println("-----------------------------------------------------------------------")
 end
 
-# solve for labor demand and supply
+# agg_labor_market: This function computes the aggregate labor demand and supply
+#                   using the stationary distribution, entry distribution, and
+#                   mass of entrants
+function agg_labor_market(prim::Primitives, res::Results)
+    @unpack s, θ, c_f, A = prim
+    @unpack stat_dist = res
+
+    agg_labor_d = 0.0  # initialize aggregate labor demand by firms
+    agg_profits = 0.0  # initialize aggregate profits
+
+    for (s_index, s_val) in enumerate(s)
+        # sum up labor demand by firms (staying and entering)
+        labor = calc_labor(p, s_val, θ)
+        agg_labor_d += labor * stat_dist[s_index]        # staying
+        agg_labor_d += m * labor * entrant_dist[s_index] # entering
+
+        # sum up profits (staying and entering)
+        profit = calc_profit(p, s_val, labor, θ, c_f)
+        agg_profits += profit * stat_dist[s_index]        # staying
+        agg_profits += m * profit * entrant_dist[s_index] # entering
+    end
+
+    agg_labor_s = 1/A - agg_profits # aggregate labor supply (implied by FOC)
+
+    agg_labor_d, agg_labor_s
+end
 
 
 # ------------------------------------------------------------------------ #
