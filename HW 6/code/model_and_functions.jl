@@ -88,7 +88,7 @@ function initialize(;p_init = 0.5, m_init = 2.75, c_f_init = 10)
 
     pol_func = zeros(n_s)    # policy function
     val_func = zeros(n_s)    # value function
-    stat_dist = ones(n_choice * n_s)/(n_choice * n_s)   # stat distribution
+    stat_dist = zeros(n_s)   # stat distribution
 
     p = p_init  # industry price
     m = m_init  # mass of entrant
@@ -256,9 +256,50 @@ end
 #  (2) solve for labor market clearing labor demand and supply
 # ------------------------------------------------------------------------ #
 
-# solve_stat_dist: This function solves for the stationary distribution
-function solve_stat_dist()
+# update_stat_dist: This function iterates through today and tomorrow's productivity
+#                   states to get the distribution of firms that stay and enter given
+#                   the state today and tomorrow.
+function update_stat_dist(prim::Primitives, res::Results)
+    @unpack n_s, s_trans_mat = prim
+    @unpack val_func, m = res
 
+    stay_dist = zeros(n_s)  # initiate update distribution for staying firms
+    enter_dist = zeros(n_s) # initiative update distribution for entering firms
+
+    # loop through productivity states today
+    for (s_i, s_val) in enumerate(s)
+        # loop through productivity states tomorrow
+        for (sp_i, sp_val) in enumerate(s)
+
+            # transition probability of firm staying given state
+            stay_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*res.stat_dist[s_i]
+            # transition probability of firm entering given state
+            enter_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*entrant_dist[s_i]
+        end
+    end
+
+    # updated distribution (m is mass of entrants)
+    stay_dist .+ (m .* enter_dist)
+end
+
+# solve_stat_dist: This function solves for the stationary distribution
+function solve_stat_dist(prim::Primitives, res::Results; tol = 1e-5)
+    converged = 0
+    n = 0
+
+    while converged == 0
+        new_dist = update_stat_dist(prim, res) # update stationary distribution
+        max_diff = max(abs.(new_dist .- res.stat_dist)) # get max difference between new and old dist
+
+        if max_diff < tol        # check convergence condition
+            converged = 1
+        end
+        res.stat_dist = new_dist # update stationary distribution
+        n+=1
+    end
+    println("-----------------------------------------------------------------------")
+    @printf "      Solving stationary distribution converged in %d iterations\n" n 
+    println("-----------------------------------------------------------------------")
 end
 
 # solve for labor demand and supply
