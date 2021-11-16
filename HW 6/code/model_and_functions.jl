@@ -1,5 +1,5 @@
 # Author: Katherine Kwok
-# Date: November 2, 2021
+# Date: November 16, 2021
 
 # This file contains the code for Problem Set 6, where we solve the Hopenhayn-Rogerson
 # model of firm dynamics.
@@ -165,13 +165,13 @@ function bellman_shocks(prim::Primitives, res::Results, α::Int64)
 
         # calculate ex-ante value function using log-sum-exp trick
         # we subtract and then add c because the value function could be too big
-        c = max(α*v_stay, α*v_exit)
+        c = max(α * v_stay, α * v_exit)
         γ = MathConstants.eulergamma
-        utility = (γ/α) + (1/α)*log(exp(α * v_stay - c) + exp(α * v_exit - c)) + c
+        utility = (γ/α) + (1/α) * (c + log(exp(α * v_stay - c) + exp(α * v_exit - c)))
 
         # calculate choice probability of choosing to exit (without action specific shock, just 0 or 1)
         # we subtract c because the value function could be too big
-        choice_prob = exp(α * v_stay - c)/sum(exp(α * v_stay - c) + exp(α * v_exit - c))
+        choice_prob = exp(α * v_exit - c)/sum(exp(α * v_stay - c) + exp(α * v_exit - c))
 
         v_next[s_index] = utility                # store value function
         x_next[s_index] = choice_prob            # store choice probability
@@ -218,7 +218,7 @@ end
 #              entrant value function to solve for the price that clears the entry
 #              market.
 # NOTE: By default, this function runs the benchmark version of bellman and vfi.
-function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3, shocks::Bool = false, α::Int64 = 0)
+function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-6, shocks::Bool = false, α::Int64 = 0)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
 
@@ -388,3 +388,54 @@ end
 # ------------------------------------------------------------------------ #
 #  (3) display and plot results
 # ------------------------------------------------------------------------ #
+
+# agg_labor: This function calculates the aggregate labor demand for incumbent (staying)
+#            firms and entering firms using the stationary distribution and
+#            entrant distribution.
+function agg_labor(prim::Primitives, res::Results)
+    @unpack s, θ, entrant_dist = prim
+    @unpack stat_dist, p, m = res
+
+    agg_labor_stay = 0.0  # initialize aggregate labor demand by staying firms
+    agg_labor_enter = 0.0  # initialize aggregate labor demand by entering firms
+
+
+    for (s_index, s_val) in enumerate(s)
+        # sum up labor demand by firms (staying and entering)
+        labor = calc_labor(p, s_val, θ)
+        agg_labor_stay += labor * stat_dist[s_index]        # staying
+        agg_labor_enter += m * labor * entrant_dist[s_index] # entering
+    end
+
+    agg_labor_stay, agg_labor_enter
+end
+
+function compute_moments(prim::Primitives, res::Results)
+    @unpack stat_dist, pol_func, m, p = res
+
+    # mass of incumbents, exits, entrants (recal pol_func = 1 means exit)
+    mass_incumbents = (1 .- pol_func)' * stat_dist
+    mass_exits = pol_func' * stat_dist
+    mass_entrants = m
+
+    # aggregate labor demand, incumbents, entrants
+    demand_incumbents, demand_entrants = agg_labor(prim, res)
+    demand_aggregate = demand_incumbents + demand_entrants
+
+    # fraction of labor in entrant
+    fraction_entrant = demand_entrants/demand_aggregate
+
+    # make data frame
+    moments = DataFrame(Industry_price = p,
+                        Mass_of_entrants = mass_entrants,
+                        Mass_of_incumbents = mass_incumbents,
+                        Mass_of_exits = mass_exits,
+                        Entrant_labor_demand = demand_entrants,
+                        Incumbent_labor_demand = demand_incumbents,
+                        Aggregate_labor_demand = demand_aggregate,
+                        Fraction_of_labor_in_entrants = fraction_entrant)
+    moments
+end
+
+function plot_decisions(prim::Primitives, res::Results)
+end
