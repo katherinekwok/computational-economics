@@ -135,6 +135,8 @@ function bellman(prim::Primitives, res::Results)
     v_next, x_next
 end
 
+# solve_vfi: This function calls the bellman() function to iterate the value
+#            function until convergence.
 function solve_vfi(prim::Primitives, res::Results; tol = 1e-6)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
@@ -157,7 +159,8 @@ function solve_vfi(prim::Primitives, res::Results; tol = 1e-6)
     println("-----------------------------------------------------------------------")
 end
 
-# solve_entrant_val: This function encodes the entrant's valuation
+# solve_entrant_val: This function encodes the entrant's valuation based on the
+#                    results of solving the value function iteration.
 function solve_entrant_val(prim::Primitives, res::Results)
     sum(res.val_func' * prim.entrant_dist)
 end
@@ -207,7 +210,6 @@ function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3)
     println("-----------------------------------------------------------------------")
 end
 
-# solve entrant's value
 
 
 # ------------------------------------------------------------------------ #
