@@ -161,7 +161,7 @@ function bellman_shocks(prim::Primitives, res::Results, α::Int64)
         γ = MathConstants.eulergamma
         utility = (γ/α) + (1/α)*log(exp(α * v_stay - c) + exp(α * v_exit - c)) + c
 
-        # calculate choice probability of choosing to stay (without action specific shock, just 0 or 1)
+        # calculate choice probability of choosing to exit (without action specific shock, just 0 or 1)
         # we subtract c because the value function could be too big
         choice_prob = exp(α * v_stay - c)/sum(exp(α * v_stay - c) + exp(α * v_exit - c))
 
@@ -256,7 +256,10 @@ end
 #  (2) solve for labor market clearing labor demand and supply
 # ------------------------------------------------------------------------ #
 
-# solve for stationary distribution
+# solve_stat_dist: This function solves for the stationary distribution
+function solve_stat_dist()
+
+end
 
 # solve for labor demand and supply
 
