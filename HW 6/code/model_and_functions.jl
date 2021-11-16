@@ -108,9 +108,10 @@ end
 
 # solve value function iteration
 
-# bellman: This function encodes the firm's bellman function. For each productivity
-#          state, the firm computes the value for staying vs. exiting tomorrow,
-#          and chooses the option that returns the max value.
+# bellman: This function encodes the firm's bellman function (benchmark, without
+#          any action-specific shocks).
+#          For each productivity state, the firm computes the value for staying
+#          vs. exiting tomorrow, and chooses the option that returns the max value.
 function bellman(prim::Primitives, res::Results)
     @unpack val_func, p = res
     @unpack s_trans_mat, s, θ, β, c_f, n_choice, n_s = prim
@@ -135,15 +136,55 @@ function bellman(prim::Primitives, res::Results)
     v_next, x_next
 end
 
+# bellman_shocks: This function specifies the bellman function with action-specific
+#                 shocks. It is very similar to the benchmark bellman, except
+#                 the continuation value for firms that stay is defined differently.
+function bellman_shocks(prim::Primitives, res::Results, α::Int64)
+    @unpack val_func, p = res
+    @unpack s_trans_mat, s, θ, β, c_f, n_choice, n_s = prim
+
+    v_next = zeros(n_s)
+    x_next = zeros(n_s)
+
+    for (s_index, s_val) in enumerate(s)     # loop through productivity states
+        s_prob = s_trans_mat[s_index, :]     # get transition probabilities for current state
+
+        labor = max(0, (p * θ * s_val)^(1/(1-θ)))           # optimal labor choice given s
+        profit = p * s_val * (labor^θ) - labor - p * c_f    # profit given s
+
+        v_stay = profit + β * s_prob' * val_func            # value for staying tomorrow
+        v_exit = profit                                     # value for exiting tomorrow
+
+        # calculate ex-ante value function using log-sum-exp trick
+        # we subtract and then add c because the value function could be too big
+        c = max(α*v_stay, α*v_exit)
+        γ = MathConstants.eulergamma
+        utility = (γ/α) + (1/α)*log(exp(α * v_stay - c) + exp(α * v_exit - c)) + c
+
+        # calculate choice probability of choosing to stay (without action specific shock, just 0 or 1)
+        # we subtract c because the value function could be too big
+        choice_prob = exp(α * v_stay - c)/sum(exp(α * v_stay - c) + exp(α * v_exit - c))
+
+        v_next[s_index] = utility                # store value function
+        x_next[s_index] = choice_prob            # store choice probability
+    end
+
+    v_next, x_next
+end
+
 # solve_vfi: This function calls the bellman() function to iterate the value
 #            function until convergence.
-function solve_vfi(prim::Primitives, res::Results; tol = 1e-6)
+function solve_vfi(prim::Primitives, res::Results, shocks::Bool, α::Int64; tol = 1e-6)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
 
     while converged == 0  # keep iterating until we error less than tolerance value
 
-        v_next, x_next = bellman(prim, res)        # call bellman
+        if shocks == false                         # if not including action-specific shocks
+            v_next, x_next = bellman(prim, res)    # call benchmark bellman
+        else
+            v_next, x_next = bellman_shocks(prim, res, α) # if including shocks
+        end
         v_err = sum(abs.(v_next.-res.val_func))    # get sup norm of val and pol
         x_err = sum(abs.(x_next.-res.pol_func))
 
@@ -168,13 +209,14 @@ end
 # solve_price: This function calls the vfi (value function iteration) function
 #              entrant value function to solve for the price that clears the entry
 #              market.
-function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3)
+# NOTE: By default, this function runs the benchmark version of bellman and vfi.
+function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3, shocks::Bool = false, α::Int64 = 0)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
 
     while converged == 0  # keep iterating until we error less than tolerance value
 
-        solve_vfi(prim, res)                        # value function iteration
+        solve_vfi(prim, res, shocks, α)             # value function iteration
         entrant_val = solve_entrant_val(prim, res)  # get entrant's value
 
         # calculate abs diff, p * c_e is steady state entrant's value
@@ -210,12 +252,9 @@ function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3)
     println("-----------------------------------------------------------------------")
 end
 
-
-
 # ------------------------------------------------------------------------ #
 #  (2) solve for labor market clearing labor demand and supply
 # ------------------------------------------------------------------------ #
-
 
 # solve for stationary distribution
 

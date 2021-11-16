@@ -31,9 +31,8 @@ include("model_and_functions.jl")                      # import all functions an
 #  (1) solve version 1 of model: standard
 # ------------------------------------------------------------------------ #
 
-p_std, r_std = initialize()     # initialize
+p_std, r_std = initialize()     # initialize primitives and results
 @time solve_price(p_std, r_std) # solve industry price
-
 
 # solve for stationary distribution
 
@@ -44,6 +43,13 @@ p_std, r_std = initialize()     # initialize
 #                                add action-specific shocks with α = 2
 # ------------------------------------------------------------------------ #
 
+p_shock1, r_shock1 = initialize()     # initialize primitives and results
+@time solve_price(p_shock1, r_shock1; shocks = true, α = 1) # solve industry price
+
+
+
+p_shock2, r_shock2 = initialize()     # initialize primitives and results
+@time solve_price(p_shock2, r_shock2; shocks = true, α = 2) # solve industry price
 
 
 # ------------------------------------------------------------------------ #
