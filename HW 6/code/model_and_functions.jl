@@ -26,7 +26,7 @@ mutable struct Primitives
     c_f::Float64  # fixed costs for staying in market
     c_e::Float64  # entry costs for entering market
 
-    n_s::Float64         # number of productivity shocks
+    n_s::Int64           # number of productivity shocks
     s::Array{Float64, 1} # productivity shock on firm
     e::Array{Float64, 1} # firm employment levels given productivity shock
 
@@ -39,7 +39,7 @@ mutable struct Primitives
     m_lb::Float64  # lower bound on mass of entrants
     m_ub::Float64  # upper bound on mass of entrants
 
-    n_choice::Float64              # number of firm
+    n_choice::Int64                # number of firm
     exit_choice::Array{Float64, 1} # vector of choices (stay = 0, exit = 1)
 end
 
@@ -47,8 +47,8 @@ end
 # Results: This struct stores the results of the algorithm
 mutable struct Results
 
-    pol_func::Array{Float64, 2}  # exit policy function - 2D (for each productivity state)
-    val_func::Array{Float64, 2}  # firm's value function - 2D (for each productivity state)
+    pol_func::Array{Float64, 1}  # exit policy function
+    val_func::Array{Float64, 1}  # firm's value function
 
     stat_dist::Array{Float64, 1} # stationary distribution of firms
 
@@ -80,14 +80,14 @@ function initialize(;p_init = 0.5, m_init = 2.75, c_f_init = 10)
     # invariant entrant distribution
     entrant_dist = [0.37, 0.4631, 0.1102, 0.0504, 0.0063]
 
-    p_lb, p_ub = [0, 1]  # lower and upper bound on industry price
-    m_lb, m_ub = [0, 10] # lower and upper bound on mass of entrants
+    p_lb, p_ub = [0, 1]      # lower and upper bound on industry price
+    m_lb, m_ub = [0, 10]     # lower and upper bound on mass of entrants
 
-    n_choice = 2         # number of firm
+    n_choice = 2         # number of firm choices
     exit_choice = [0, 1] # vector of choices (stay = 0, exit = 1)
 
-    pol_func = zeros(n_choice, n_s)                     # policy function
-    val_func = zeros(n_choice, n_s)                     # value function
+    pol_func = zeros(n_s)    # policy function
+    val_func = zeros(n_s)    # value function
     stat_dist = ones(n_choice * n_s)/(n_choice * n_s)   # stat distribution
 
     p = p_init  # industry price
@@ -108,42 +108,102 @@ end
 
 # solve value function iteration
 
-# bellman: this function encodes the firm's value function
-function bellman()
-    @unpack val_func = res                       # unpack value function
-    @unpack a_grid, β, α, na, s, t_matrix, ns = prim # unpack model primitives
-    v_next = zeros(na, ns)                        # next guess of value function
+# bellman: This function encodes the firm's bellman function. For each productivity
+#          state, the firm computes the value for staying vs. exiting tomorrow,
+#          and chooses the option that returns the max value.
+function bellman(prim::Primitives, res::Results)
+    @unpack val_func, p = res
+    @unpack s_trans_mat, s, θ, β, c_f, n_choice, n_s = prim
 
-    for (s_index, s_val) in enumerate(s)         # loop through possible employment states
-        s_prob = t_matrix[s_index, :]            # get transition probabilities for current state
+    v_next = zeros(n_s)
+    x_next = zeros(n_s)
 
+    for (s_index, s_val) in enumerate(s)     # loop through productivity states
+        s_prob = s_trans_mat[s_index, :]     # get transition probabilities for current state
+
+        labor = max(0, (p * θ * s_val)^(1/(1-θ)))           # optimal labor choice given s
+        profit = p * s_val * (labor^θ) - labor - p * c_f    # profit given s
+
+        v_stay = profit + β * s_prob' * val_func            # value for staying tomorrow
+        v_exit = profit                                     # value for exiting tomorrow
+
+        best_choice = findmax([v_stay, v_exit])  # returns [max val, max index]
+        v_next[s_index] = best_choice[1]         # store max val
+        x_next[s_index] = best_choice[2] - 1     # store corresponding choice
     end
-    v_next # return next guess of value function
+
+    v_next, x_next
 end
 
-# V_iterate: is the value function iteration loop, which calls the Bellman
-# function repeatedly until we reach convergence.
-function V_iterate(prim::Primitives, res::Results, q::Float64, tol::Float64 = 1e-5, err::Float64 = 100.0)
+function solve_vfi(prim::Primitives, res::Results; tol = 1e-6)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
 
-    println("-----------------------------------------------------------------------")
-    @printf "      Starting value function iteration for bond price  %.6f \n" q
-    println("-----------------------------------------------------------------------")
     while converged == 0  # keep iterating until we error less than tolerance value
 
-        v_next = Bellman(prim, res, q)                                 # call Bellman
-        err = abs.(maximum(v_next.-res.val_func))/abs(maximum(v_next)) # check for error
+        v_next, x_next = bellman(prim, res)        # call bellman
+        v_err = sum(abs.(v_next.-res.val_func))    # get sup norm of val and pol
+        x_err = sum(abs.(x_next.-res.pol_func))
 
-        if err < tol          # if error less than tolerance
-            converged = 1     # we have converged
+        if v_err < tol && x_err < tol  # if error less than tolerance
+            converged = 1              # we have converged
         end
         res.val_func = v_next # update val func
+        res.pol_func = x_next
         n += 1                # update loop counter
-
     end
     println("-----------------------------------------------------------------------")
     println("       Value function converged in ", n, " iterations.")
+    println("-----------------------------------------------------------------------")
+end
+
+# solve_entrant_val: This function encodes the entrant's valuation
+function solve_entrant_val(prim::Primitives, res::Results)
+    sum(res.val_func' * prim.entrant_dist)
+end
+
+# solve_price: This function calls the vfi (value function iteration) function
+#              entrant value function to solve for the price that clears the entry
+#              market.
+function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-3)
+    n = 0         # counter for iteration
+    converged = 0 # indicator for convergence
+
+    while converged == 0  # keep iterating until we error less than tolerance value
+
+        solve_vfi(prim, res)                        # value function iteration
+        entrant_val = solve_entrant_val(prim, res)  # get entrant's value
+
+        # calculate abs diff, p * c_e is steady state entrant's value
+        ss_entrant_val = res.p * prim.c_e
+        abs_diff = abs(entrant_val - ss_entrant_val)
+        adjustment = 200
+
+        # use bisection method to update price if not converged
+
+        if abs_diff < tol                              # if converged
+            converged = 1                              # update convergence flag!
+
+        elseif entrant_val > ss_entrant_val            # if current entrant val too big
+            prim.p_ub = res.p                          # p too high, lower the price upper bound
+            p_new = (prim.p_ub + prim.p_lb)/2          # to drop p
+            println("-----------------------------------------------------------------------")
+            @printf "          Entrant val too big; drop price from %.4f to %.4f \n" res.p p_new
+            println("-----------------------------------------------------------------------")
+            res.p = p_new
+        else                                           # if current entrant val too small
+            prim.p_lb = res.p                          # p too low, raise the price lower bound
+            p_new = (prim.p_ub + prim.p_lb)/2          # to raise p
+            println("-----------------------------------------------------------------------")
+            @printf "       Entrant val too small; raise price from %.4f to %.4f \n" res.p p_new
+            println("-----------------------------------------------------------------------")
+            res.p = p_new
+        end
+
+        n += 1  # update loop counter
+    end
+    println("-----------------------------------------------------------------------")
+    @printf "  Solving for industry price converged in %d iterations with p = %.4f\n" n res.p
     println("-----------------------------------------------------------------------")
 end
 

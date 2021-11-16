@@ -31,11 +31,9 @@ include("model_and_functions.jl")                      # import all functions an
 #  (1) solve version 1 of model: standard
 # ------------------------------------------------------------------------ #
 
-p_std, r_std = initialize()
+p_std, r_std = initialize()     # initialize
+@time solve_price(p_std, r_std) # solve industry price
 
-# solve value function iteration
-
-# solve entrant's value
 
 # solve for stationary distribution
 
