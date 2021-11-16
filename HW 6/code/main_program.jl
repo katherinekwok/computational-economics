@@ -33,10 +33,7 @@ include("model_and_functions.jl")                      # import all functions an
 
 p_std, r_std = initialize()     # initialize primitives and results
 @time solve_price(p_std, r_std) # solve industry price
-
-# solve for stationary distribution
-
-# solve for labor demand and supply
+@time solve_mass_entrants(p_std, r_std)
 
 # ------------------------------------------------------------------------ #
 #  (2) solve version 2 of model: add action-specific shocks with α = 1

@@ -88,7 +88,7 @@ function initialize(;p_init = 0.5, m_init = 2.75, c_f_init = 10)
 
     pol_func = zeros(n_s)    # policy function
     val_func = zeros(n_s)    # value function
-    stat_dist = zeros(n_s)   # stat distribution
+    stat_dist = ones(n_s)/n_s   # stat distribution
 
     p = p_init  # industry price
     m = m_init  # mass of entrant
@@ -269,7 +269,7 @@ end
 #                   the state today and tomorrow.
 function update_stat_dist(prim::Primitives, res::Results)
     @unpack s, n_s, s_trans_mat, entrant_dist = prim
-    @unpack val_func, m, stat_dist = res
+    @unpack pol_func, m, stat_dist = res
 
     stay_dist = zeros(n_s)  # initiate update distribution for staying firms
     enter_dist = zeros(n_s) # initiative update distribution for entering firms
@@ -280,9 +280,9 @@ function update_stat_dist(prim::Primitives, res::Results)
         for (sp_i, sp_val) in enumerate(s)
 
             # transition probability of firm staying given state
-            stay_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*stat_dist[s_i]
+            stay_dist[sp_i] += (1-pol_func[s_i])*s_trans_mat[s_i, sp_i]*stat_dist[s_i]
             # transition probability of firm entering given state
-            enter_dist[s_i] = (1-val_func[s_i])*s_trans_mat[s_i, sp_i]*entrant_dist[s_i]
+            enter_dist[sp_i] += (1-pol_func[s_i])*s_trans_mat[s_i, sp_i]*entrant_dist[s_i]
         end
     end
 
@@ -291,7 +291,7 @@ function update_stat_dist(prim::Primitives, res::Results)
 end
 
 # solve_stat_dist: This function solves for the stationary distribution, basically
-#                  by updating the distribution using the solved value function
+#                  by updating the distribution using the solved policy function
 #                  until convergence.
 function solve_stat_dist(prim::Primitives, res::Results; tol = 1e-5)
     converged = 0
@@ -299,7 +299,7 @@ function solve_stat_dist(prim::Primitives, res::Results; tol = 1e-5)
 
     while converged == 0
         new_dist = update_stat_dist(prim, res) # update stationary distribution
-        max_diff = max(abs.(new_dist .- res.stat_dist)) # get max difference between new and old dist
+        max_diff = maximum(abs.(new_dist .- res.stat_dist)) # get max difference between new and old dist
 
         if max_diff < tol        # check convergence condition
             converged = 1
@@ -316,8 +316,8 @@ end
 #                   using the stationary distribution, entry distribution, and
 #                   mass of entrants
 function agg_labor_market(prim::Primitives, res::Results)
-    @unpack s, θ, c_f, A = prim
-    @unpack stat_dist = res
+    @unpack s, θ, c_f, A, entrant_dist = prim
+    @unpack stat_dist, p, m = res
 
     agg_labor_d = 0.0  # initialize aggregate labor demand by firms
     agg_profits = 0.0  # initialize aggregate profits
@@ -339,6 +339,51 @@ function agg_labor_market(prim::Primitives, res::Results)
     agg_labor_d, agg_labor_s
 end
 
+# solve_mass_entrants: This function calls the functions to solve for the stationary
+#                      distribution and calculate aggregate labor supply and
+#                      demand. It continues to iterature until m (mass of entrants)
+#                      clears the labor market (agg supply = agg demand)
+function solve_mass_entrants(prim::Primitives, res::Results; tol = 1e-5)
+
+    converged = 0   # convergence flag
+    n = 0
+
+    while converged == 0
+
+        solve_stat_dist(prim, res)  # solve for stationary distribution
+
+        # calculate aggregate labor supply and demand
+        agg_labor_d, agg_labor_s = agg_labor_market(prim, res)
+        abs_diff = abs(agg_labor_s - agg_labor_d) # get abs difference
+
+        if abs_diff < tol                              # if converged
+            converged = 1                              # update convergence flag!
+
+        elseif agg_labor_d > agg_labor_s            # if demand > supply
+            prim.m_ub = res.m                       # m too high, lower m upper bound
+            m_new = (prim.m_ub + prim.m_lb)/2       # to drop m
+            println("-----------------------------------------------------------------------")
+            @printf "    Supply exceeds demand; drop mass of entrants from %.4f to %.4f \n" res.m m_new
+            println("-----------------------------------------------------------------------")
+            res.m = m_new
+        else                                           # if supply > demand
+            prim.m_lb = res.m                          # m too low, raise m lower bound
+            m_new = (prim.m_ub + prim.m_lb)/2          # to raise m
+            println("-----------------------------------------------------------------------")
+            @printf "   Demand exceeds supply; raise mass of entrants from %.4f to %.4f \n" res.m m_new
+            println("-----------------------------------------------------------------------")
+            res.m = m_new
+        end
+        n+=1
+        if n == 5
+            converged = 1
+        end
+    end
+    println("-----------------------------------------------------------------------")
+    @printf "  Solving for mass of entrants converged in %d iterations with m = %.4f\n" n res.m
+    println("-----------------------------------------------------------------------")
+
+end
 
 # ------------------------------------------------------------------------ #
 #  (3) display and plot results
