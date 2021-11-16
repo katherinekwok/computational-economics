@@ -1,0 +1,9 @@
+Versions,Benchmark,Shock_with_alpha_1,Shock_with_alpha_2
+Industry_price,0.739,0.691,0.72
+Mass_of_entrants,2.664,4.336,3.43
+Mass_of_incumbents,6.506,6.554,5.51
+Mass_of_exits,1.624,2.737,2.108
+Incumbent_labor_demand,139.362,135.745,124.663
+Entrant_labor_demand,37.568,50.701,44.907
+Aggregate_labor_demand,176.929,186.446,169.57
+Fraction_of_labor_in_entrants,0.212,0.272,0.265

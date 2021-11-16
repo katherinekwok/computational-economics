@@ -410,6 +410,10 @@ function agg_labor(prim::Primitives, res::Results)
     agg_labor_stay, agg_labor_enter
 end
 
+
+# compute_moments: This function computes model moments after solving the
+#                  Hopenhayn-Rogerson algorithm, and then compiles them into
+#                  a neat dataframe.
 function compute_moments(prim::Primitives, res::Results)
     @unpack stat_dist, pol_func, m, p = res
 
@@ -434,7 +438,7 @@ function compute_moments(prim::Primitives, res::Results)
                         Incumbent_labor_demand = demand_incumbents,
                         Aggregate_labor_demand = demand_aggregate,
                         Fraction_of_labor_in_entrants = fraction_entrant)
-    moments
+    moments  # return data frame
 end
 
 function plot_decisions(prim::Primitives, res::Results)

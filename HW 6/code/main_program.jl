@@ -22,7 +22,7 @@
 #  (0) load packages and functions
 # ------------------------------------------------------------------------ #
 
-using CSV, DataFrames                                  # load packages for exporting data to csv
+using CSV, DataFrames, Latexify                        # load packages for exporting data to csv
 using Parameters, Plots, Printf, LinearAlgebra         # load standard packages
 
 include("model_and_functions.jl")                      # import all functions and strucs
@@ -59,15 +59,22 @@ shock1_moments = compute_moments(p_shock1, r_shock1)
 shock2_moments = compute_moments(p_shock2, r_shock2)
 
 compare = vcat(benchmark_moments, shock1_moments, shock2_moments) # merge together
+compare = round.(compare, digits = 3)
 
 # tranpose output (not a built-in function in julia, so found solution on stack overflow)
 compare = DataFrame([[names(compare)]; collect.(eachrow(compare))], [:column; Symbol.(axes(compare, 1))])
-rename!(compare, [:Versions, :Benchmark, :Shock_with_alpha_1, :Shock_with_alpha_2])
 
+# rename for output and export
+rename!(compare, [:Versions, :Benchmark, :Shock_with_alpha_1, :Shock_with_alpha_2])
+CSV.write("output/compare_moments.csv", compare)
+latexify(compare, env = :table) |> display
 
 # ------------------------------------------------------------------------ #
 #  (4) plot decision rules of exit for each version
 # ------------------------------------------------------------------------ #
+
+
+
 
 # ------------------------------------------------------------------------ #
 #  (5) solve models with c_f = 15 rather than default c_f = 10
