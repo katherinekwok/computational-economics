@@ -3,19 +3,19 @@
 
 # This file contains the code for Problem Set 6, where we solve the Hopenhayn-Rogerson
 # model of firm dynamics. The program implements the following:
+
+#  For c_f values (fixed cost of entry) 10 and 15:
 #
 #  (1) solve version 1 of model: standard
+#
 #  (2) solve version 2 of model: add action-specific shocks with α = 1
-#                                add action-specific shocks with α = 2
 #
-#  (3) compare model moments:    price level,
-#                                mass of incumbents/entrants/exits,
-#                                labor aggregate/incumbents/entrants,
-#                                fraction of labor in entrants
+#  (3) solve version 2 of model: add action-specific shocks with α = 2
 #
-#  (4) plot decision rules of exit for each version
+#  (4) compare model moments and plot decision rules of exit for each version:
+#      (price level, mass of incumbents/entrants/exits, labor aggregate/incumbents/
+#       entrants, fraction of labor in entrants)
 #
-#  (5) solve models with c_f = 15 rather than default c_f = 10
 
 
 # ------------------------------------------------------------------------ #
@@ -28,54 +28,39 @@ using Parameters, Plots, Printf, LinearAlgebra         # load standard packages
 include("model_and_functions.jl")                      # import all functions and strucs
 
 # ------------------------------------------------------------------------ #
-#  (1) solve version 1 of model: standard
+#  (1-4) solve models with different specifics and output results
 # ------------------------------------------------------------------------ #
 
-p_std, r_std = initialize()     # initialize primitives and results
-@time solve_price(p_std, r_std)             # solve industry price
-@time solve_mass_entrants(p_std, r_std)     # solve mass of entrants
+c_f_init = [10, 15] # different fixed costs for entry to test, default = 10
 
-# ------------------------------------------------------------------------ #
-#  (2) solve version 2 of model: add action-specific shocks with α = 1
-#                                add action-specific shocks with α = 2
-# ------------------------------------------------------------------------ #
+for (c_index, c_f_val) in enumerate(c_f_init)
 
-p_shock1, r_shock1 = initialize()     # initialize primitives and results
-@time solve_price(p_shock1, r_shock1; shocks = true, α = 1) # solve industry price
-@time solve_mass_entrants(p_shock1, r_shock1)               # solve mass of entrants
+    # ------------------------------------------------------------------- #
+    # (1) benchmark version
+    # ------------------------------------------------------------------- #
+    p_std, r_std = initialize(;c_f_init = c_f_val)
+    @time solve_price(p_std, r_std)             # solve industry price
+    @time solve_mass_entrants(p_std, r_std)     # solve mass of entrants
 
+    # ------------------------------------------------------------------- #
+    # (2) with action specific shock and α = 1
+    # ------------------------------------------------------------------- #
+    p_shock1, r_shock1 = initialize(;c_f_init = c_f_val)
+    @time solve_price(p_shock1, r_shock1; shocks = true, α = 1) # solve industry price
+    @time solve_mass_entrants(p_shock1, r_shock1)               # solve mass of entrants
 
-p_shock2, r_shock2 = initialize()     # initialize primitives and results
-@time solve_price(p_shock2, r_shock2; shocks = true, α = 2) # solve industry price
-@time solve_mass_entrants(p_shock2, r_shock2)               # solve mass of entrants
+    # ------------------------------------------------------------------- #
+    # (3) with action specific shock and α = 2
+    # ------------------------------------------------------------------- #
+    p_shock2, r_shock2 = initialize(;c_f_init = c_f_val)
+    @time solve_price(p_shock2, r_shock2; shocks = true, α = 2) # solve industry price
+    @time solve_mass_entrants(p_shock2, r_shock2)               # solve mass of entrants
 
-# ------------------------------------------------------------------------ #
-#  (3) compare model moments
-# ------------------------------------------------------------------------ #
+    # ------------------------------------------------------------------- #
+    # (4) output moments and results
+    # ------------------------------------------------------------------- #
+    type = "c_f_"*string(c_f_val)
+    compile_moments(p_std, r_std, p_shock1, r_shock1, p_shock2, r_shock2, type)
+    plot_decisions(r_std, r_shock1, r_shock2, type)
 
-# call function to compile and compute moments from each experiment
-benchmark_moments = compute_moments(p_std, r_std)
-shock1_moments = compute_moments(p_shock1, r_shock1)
-shock2_moments = compute_moments(p_shock2, r_shock2)
-
-compare = vcat(benchmark_moments, shock1_moments, shock2_moments) # merge together
-compare = round.(compare, digits = 3)
-
-# tranpose output (not a built-in function in julia, so found solution on stack overflow)
-compare = DataFrame([[names(compare)]; collect.(eachrow(compare))], [:column; Symbol.(axes(compare, 1))])
-
-# rename for output and export
-rename!(compare, [:Versions, :Benchmark, :Shock_with_alpha_1, :Shock_with_alpha_2])
-CSV.write("output/compare_moments.csv", compare)
-latexify(compare, env = :table) |> display
-
-# ------------------------------------------------------------------------ #
-#  (4) plot decision rules of exit for each version
-# ------------------------------------------------------------------------ #
-
-
-
-
-# ------------------------------------------------------------------------ #
-#  (5) solve models with c_f = 15 rather than default c_f = 10
-# ------------------------------------------------------------------------ #
+end

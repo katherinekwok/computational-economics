@@ -1,8 +1,8 @@
 # Author: Katherine Kwok
 # Date: November 16, 2021
 
-# This file contains the code for Problem Set 6, where we solve the Hopenhayn-Rogerson
-# model of firm dynamics.
+# This file contains the declaration of helper functions and structs for
+# Problem Set 6, where we solve the Hopenhayn-Rogerson model of firm dynamics.
 #
 # The code below is divided into the following sections:
 #
@@ -218,6 +218,7 @@ end
 #              entrant value function to solve for the price that clears the entry
 #              market.
 # NOTE: By default, this function runs the benchmark version of bellman and vfi.
+
 function solve_price(prim::Primitives, res::Results; tol::Float64 = 1e-6, shocks::Bool = false, α::Int64 = 0)
     n = 0         # counter for iteration
     converged = 0 # indicator for convergence
@@ -441,5 +442,32 @@ function compute_moments(prim::Primitives, res::Results)
     moments  # return data frame
 end
 
-function plot_decisions(prim::Primitives, res::Results)
+# compile_moments: This function calls a function to compile all the model moments
+#                  and then exports them to csv and latex.
+function compile_moments(p_std::Primitives, r_std::Results, p_shock1::Primitives,
+    r_shock1::Results, p_shock2::Primitives, r_shock2::Results, type::String)
+
+    benchmark_moments = compute_moments(p_std, r_std)    # call helper to compute moments for
+    shock1_moments = compute_moments(p_shock1, r_shock1) # a given model
+    shock2_moments = compute_moments(p_shock2, r_shock2)
+
+    compare = vcat(benchmark_moments, shock1_moments, shock2_moments) # merge together
+    compare = round.(compare, digits = 3)
+
+    # tranpose output (not a built-in function in julia, so found solution on stack overflow)
+    compare = DataFrame([[names(compare)]; collect.(eachrow(compare))], [:column; Symbol.(axes(compare, 1))])
+
+    # rename for output and export
+    rename!(compare, [:Versions, :Benchmark, :Shock_with_alpha_1, :Shock_with_alpha_2])
+    CSV.write("output/compare_moments_"*type*".csv", compare)
+    latexify(compare, env = :table) |> display
+
+end
+
+# plot_decisions: This function plots the decision rules together
+function plot_decisions(r_std::Results, r_shock1::Results, r_shock2::Results, type::String)
+    x_plot = plot([r_std.pol_func r_shock1.pol_func r_shock2.pol_func],
+            label = ["Benchmark" "With Shock, α = 1" "With Shock, α = 2"], legend = :topright)
+    display(x_plot)
+    savefig(x_plot, "output/decision_rules"*"_"*type*".png")
 end
