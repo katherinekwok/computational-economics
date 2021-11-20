@@ -8,11 +8,12 @@
 #   (1) use quadrature method to predict choice probabilities
 #   (2) use GHK method to predict choice probabilities
 #   (3) use accept/reject method to predict choice probabilities
+#   (4) run maximum likelihood using quadrature method
 
 using Parameters, Plots, Printf, LinearAlgebra, Printf # load standard packages
 using StatFiles, DataFrames, CSV                       # load packages for handling data
 using Latexify                                         # load package for outputting results
-using Distributions
+using Distributions, Optim, FiniteDiff
 include("helper_functions.jl")                         # load helper functions
 
 root_path = pwd()                                      # set file paths
@@ -24,10 +25,10 @@ KPU_d2_path = data_path * "KPU_d2_l20.csv"
 
 
 # ---------------------------------------------------------------------------- #
-#   (0) load data, initialize prims and structs
+#   (0) load data and set up variables
 # ---------------------------------------------------------------------------- #
 params = Primitives()
-X, Z = read_mortgage_data(mortgage_data_path)
+X, Z, Y = read_mortgage_data(mortgage_data_path, params)
 KPU_d1 = read_KPU_data(KPU_d1_path)
 KPU_d2 = read_KPU_data(KPU_d2_path)
 
@@ -36,9 +37,23 @@ KPU_d2 = read_KPU_data(KPU_d2_path)
 #   (1) use quadrature method to predict choice probabilities
 # ---------------------------------------------------------------------------- #
 
-obs = size(X, 1)
-quad_probs = zeros(obs, 4)
+quad_probs = quadrature_wrapper(X, Z, KPU_d1, KPU_d2, params)
 
-for index in 1:obs
-    quad_probs[index, :] = quadrature(params, KPU_d1, KPU_d2, X[index, :], Z[index, :])
-end
+# ---------------------------------------------------------------------------- #
+#   (2) use GHK method to predict choice probabilities
+# ---------------------------------------------------------------------------- #
+
+
+
+# ---------------------------------------------------------------------------- #
+#   (3) use accept/reject method to predict choice probabilities
+# ---------------------------------------------------------------------------- #
+
+
+# ---------------------------------------------------------------------------- #
+#   (4) run maximum likelihood using quadrature method
+# ---------------------------------------------------------------------------- #
+
+θ_init = vcat([params.α0, params.α1, params.α2], params.β, params.γ, [params.ρ])
+θ_bfgs = @time optimize(θ -> -log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 1), θ_init, BFGS(); inplace = false)
+Optim.minimizer(θ_bfgs)
