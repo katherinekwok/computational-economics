@@ -55,5 +55,5 @@ quad_probs = quadrature_wrapper(X, Z, KPU_d1, KPU_d2, params)
 # ---------------------------------------------------------------------------- #
 
 θ_init = vcat([params.α0, params.α1, params.α2], params.β, params.γ, [params.ρ])
-θ_bfgs = @time optimize(θ -> -log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 1), θ_init, BFGS(); inplace = false)
-Optim.minimizer(θ_bfgs)
+θ_bfgs_Y_0 = @time optimize(θ -> -log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 1), θ_init, BFGS(); inplace = false)
+Optim.minimizer(θ_bfgs_Y_0)

@@ -34,7 +34,7 @@
     β::Array{Float64, 1} = zeros(size(x_vars,1))
     γ::Array{Float64, 1} = fill(0.3, size(z_vars, 1))
     ρ::Float64 = 0.5
-    σ::Float64 = sqrt((1/(1-ρ)^2))
+    σ::Float64 = (1/(1-ρ)^2)
 end
 
 # read_mortgage_data: This function reads and prepares the mortgage data for the
@@ -52,7 +52,8 @@ function read_mortgage_data(file_path::String, params::Primitives)
     Z = Array(select(dt, z_vars))
 
     # select dependent variable
-    Y = Array(select(dt, y_vars))
+    Y = Array(select(dt, y_vars)) # get i_open_0, i_open_1, i_open_2
+    Y = 1 .- Y                    # convert to indicator is loan is paid
 
     X, Z, Y
 end
@@ -87,13 +88,13 @@ function quadrature(params, KPU_d1, KPU_d2, x, z)
     @unpack ρ, σ, α0, α1, α2, γ, β = params
 
     # calculate a0, a1, a2
-    a0_pos = α0 + x' * β + z[1] * γ[1] # Z_i0 = Z[1]
-    a1_pos = α1 + x' * β + z[2] * γ[2] # Z_i1 = Z[2]
-    a2_pos = α2 + x' * β + z[3] * γ[3] # Z_i2 = Z[3]
+    a0_pos = α0 + x' * β + z' * γ
+    a1_pos = α1 + x' * β + z' * γ
+    a2_pos = α2 + x' * β + z' * γ
 
-    a0_neg = -α0 - x' * β - z[1] * γ[1] # Z_i0 = Z[1]
-    a1_neg = -α1 - x' * β - z[2] * γ[2] # Z_i1 = Z[2]
-    a2_neg = -α2 - x' * β - z[3] * γ[3] # Z_i2 = Z[3]
+    a0_neg = -α0 - x' * β - z' * γ
+    a1_neg = -α1 - x' * β - z' * γ
+    a2_neg = -α2 - x' * β - z' * γ
 
     # choice probability of T_i = 1
     prob_1 = cdf.(Normal(), a0_neg/σ)
@@ -161,9 +162,12 @@ function log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 0)
 
     # output sum of log likelihood for given T = 1 or 2 or 3
     for i in 1:size(X)[1]
-        output += log(quad_probs[i, T])
+        product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
+
+        if product > 0
+            output += log(product)
+        end
     end
-    output = output/size(X)[1]
 
     output
 end

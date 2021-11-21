@@ -7,6 +7,6 @@ tabstat  i_open_0 i_open_1 i_open_2 `varlist', stat(n mean sd min max) columns(s
 
 desc
 forvalues i=0/2 {
-	gen change_score_`i'=score_`i'-score_0
-	probit i_open_`i'  change_score_`i' `varlist', r 
+	gen i_close_`i' = 1 - i_open_`i'
+	probit i_close_`i'  score_`i' `varlist', r 
 }
