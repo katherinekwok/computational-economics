@@ -14,13 +14,13 @@ using Parameters, Plots, Printf, LinearAlgebra, Printf # load standard packages
 using StatFiles, DataFrames, CSV                       # load packages for handling data
 using Latexify                                         # load package for outputting results
 using Distributed, SharedArrays
-
 @everywhere using Distributions, Optim, FiniteDiff, Random
 
 include("helper_functions.jl")                         # load helper functions
 
 root_path = pwd()                                      # set file paths
 data_path = root_path * "/data/"
+output_path = root_path * "/output/"
 
 mortgage_data_path = data_path * "mortgage_performance_data.dta"
 KPU_d1_path = data_path * "KPU_d1_l20.csv"
@@ -60,5 +60,18 @@ a_r_probs = accept_reject_wrapper(X, Z, param)
 # ---------------------------------------------------------------------------- #
 
 θ_init = vcat([param.α0, param.α1, param.α2], param.β, param.γ, [param.ρ])
-θ_bfgs_Y_0 = @time optimize(θ -> -log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 1), θ_init, BFGS(); inplace = false)
-Optim.minimizer(θ_bfgs_Y_0)
+T_max = 3
+θ_bfgs_all = SharedArray{Float64}(size(θ_init, 1), size(T_list, 1))
+
+@sync @distributed for T_i in 1:T_max
+    θ_bfgs = @time optimize(θ -> -log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = T_i), θ_init, BFGS(); inplace = false)
+    θ_bfgs_all[:, T_i] = Optim.minimizer(θ_bfgs)
+end
+
+
+# ---------------------------------------------------------------------------- #
+#   (5) export results
+# ---------------------------------------------------------------------------- #
+
+output_coefficients(θ_bfgs_all, param, output_path)
+output_choice_probs(quad_probs, ghk_probs, a_r_probs, output_path)

@@ -150,6 +150,12 @@ function quadrature_wrapper(X, Z, KPU_d1, KPU_d2, param)
     for index in 1:obs
         quad_probs[index, :] = quadrature(param, KPU_d1, KPU_d2, X[index, :], Z[index, :])
     end
+
+    @printf "+--------------------------------------------------------------+\n"
+    @printf " Quadrature method is complete. Average choice probabilities: \n"
+    println(round.([mean(quad_probs[:, 1]), mean(quad_probs[:, 2]), mean(quad_probs[:, 3]), mean(quad_probs[:, 4])], digits = 5))
+    @printf "+--------------------------------------------------------------+\n"
+
     return quad_probs # return probs
 end
 
@@ -208,6 +214,12 @@ function ghk_wrapper(X, Z, param)
     @sync @distributed for index in 1:obs
         ghk_probs[index, :] = ghk_method(param, X[index, :], Z[index, :])
     end
+
+    @printf "+--------------------------------------------------------------+\n"
+    @printf "    GHK method is complete. Average choice probabilities: \n"
+    println(round.([mean(ghk_probs[:, 1]), mean(ghk_probs[:, 2]), mean(ghk_probs[:, 3]), mean(ghk_probs[:, 4])], digits = 5))
+    @printf "+--------------------------------------------------------------+\n"
+
     return ghk_probs # return probs
 end
 
@@ -288,6 +300,12 @@ function accept_reject_wrapper(X, Z, param)
         ϵ_i0, ϵ_i1, ϵ_i2 = draw_errors(param)    # draw errors
         a_r_probs[index, :] = accept_reject(param, X[index, :], Z[index, :], ϵ_i0, ϵ_i1, ϵ_i2)
     end
+
+    @printf "+--------------------------------------------------------------+\n"
+    @printf " Accept/reject method is complete. Average choice probabilities: \n"
+    println(round.([mean(a_r_probs[:, 1]), mean(a_r_probs[:, 2]), mean(a_r_probs[:, 3]), mean(a_r_probs[:, 4])], digits = 5))
+    @printf "+--------------------------------------------------------------+\n"
+
     return a_r_probs # return probs
 end
 
@@ -318,12 +336,51 @@ function log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 0)
 
     # output sum of log likelihood for given T = 1 or 2 or 3
     for i in 1:size(X)[1]
-        product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
+        #product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
+        #
+        #if product > 0
+        #    output += log(product)
+        #end
 
-        if product > 0
-            output += log(product)
-        end
+        output += log(quad_probs[i, T])
     end
 
     output
+end
+
+# ---------------------------------------------------------------------------- #
+#   (5) output results
+# ---------------------------------------------------------------------------- #
+
+# output_coefficients: This function outputs the MLE coefficients to latex and CSV.
+#                      We take the variable names as given from the param. declaration.
+function output_coefficients(θ_bfgs_all, param, output_path)
+    # compile variable names
+    var_names = vcat(["alpha_0", "alpha_1", "alpha_2"], param.x_vars, param.z_vars, ["rho"])
+    # append names with coefficient estimates
+    θ_output = DataFrame(hcat(var_names, θ_bfgs_all), :auto)
+    rename!(θ_output,[:coefficients,:i_close_1, :i_close_2, :i_close_3])
+
+    # output to latex and CSV
+    latexify(θ_output, env = :table) |> print
+    CSV.write(output_path*"probit_coefficients.csv", θ_output)
+end
+
+# output_choice_prob: This function outputs the average choice probabilities for
+#                     each version (quadrature, ghk, accept/reject)
+function output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path)
+
+    # get means for each version
+    quad_avg = round.([mean(quad_probs[:, 1]), mean(quad_probs[:, 2]), mean(quad_probs[:, 3]), mean(quad_probs[:, 4])], digits = 5)
+    ghk_avg = round.([mean(ghk_probs[:, 1]), mean(ghk_probs[:, 2]), mean(ghk_probs[:, 3]), mean(ghk_probs[:, 4])], digits = 5)
+    a_r_avg = round.([mean(a_r_probs[:, 1]), mean(a_r_probs[:, 2]), mean(a_r_probs[:, 3]), mean(a_r_probs[:, 4])], digits = 5)
+
+    # add names
+    var_names = ["P(Ti = 1 | Xi, Zit, θ)", "P(Ti = 2 | Xi, Zit, θ)", "P(Ti = 3 | Xi, Zit, θ)", "P(Ti = 4| Xi, Zit, θ)"]
+    prob_output = hcat(var_names, quad_avg, ghk_avg, a_r_avg)
+
+    # output to latex and CSV
+    latexify(prob_output, env = :table) |> print
+    CSV.write(output_path*"choice_probabilities.csv", prob_output)
+
 end
