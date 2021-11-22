@@ -158,6 +158,59 @@ end
 # ---------------------------------------------------------------------------- #
 
 
+# ghk_method: This function implements the GHK algorithm as detailed in JF's slides.
+#             We compute the choice probabilities sequentially, by drawing ϵ_i0,
+#             η_i1, η_i2 from truncated normal distributions specified by conditions
+#             tied to a given choice. The number of draws for the error terms is
+#             the same as the number of simulations we run. At the end, we take
+#             the average choice probability across all simulations.
+
+@everywhere function ghk_method(param, x, z)
+    @unpack σ, n_simu, ρ = param
+
+    # calculate a0, a1, a2
+    a0_pos, a1_pos, a2_pos, a0_neg, a1_neg, a2_neg = calculate_conditions(param, x, z)
+
+    # get truncated normal distribution of ϵ_i0
+    ϕ_i0_dis = truncated(Normal(), -Inf, (a0_neg)/σ)    # truncated normal dist for ϵ_i0
+    ϕ_i0_cdf = cdf.(Normal(), fill(a0_neg/σ, n_simu))   # CDF
+    ϵ_i0 = rand(ϕ_i0_dis, n_simu)                       # draw n_simu ϵ_i0 from truncated normal dist
+
+    # get truncated normal distribution of η_i1
+    ϕ_i1_dis = truncated.(Normal(), -Inf, a1_neg .- ρ.*ϵ_i0)    # truncated normal dist for η_i1
+    ϕ_i1_cdf = cdf.(Normal(), a1_neg .- ρ.*ϵ_i0)                # CDF
+    η_i1 = rand.(ϕ_i1_dis)                                      # draw from truncated normal dist
+    ϵ_i1 = ρ*ϵ_i0 .+ η_i1                                       # calculate ϵ_i1
+
+    # get truncated normal distribution of η_i2
+    ϕ_i2_dis = truncated.(Normal(), -Inf, a2_neg .- ρ.*ϵ_i1)    # truncated normal dist for η_i2
+    ϕ_i2_cdf = cdf.(Normal(), a2_neg .- ρ.*ϵ_i1)                # CDF
+    η_i2 = rand.(ϕ_i2_dis)                                      # draw from truncated normal dist
+    ϵ_i2 = ρ*ϵ_i1 .+ η_i2                                       # calculate ϵ_i2
+
+    # calculate mean choice probabilies across simulations
+    prob_T_1 = mean(ϕ_i0_cdf)
+    prob_T_2 = mean((1 .- ϕ_i0_cdf) .* ϕ_i1_cdf)
+    prob_T_3 = mean((1 .- ϕ_i0_cdf) .* (1 .- ϕ_i1_cdf) .* ϕ_i2_cdf)
+    prob_T_4 = mean((1 .- ϕ_i0_cdf) .* (1 .- ϕ_i1_cdf) .* (1 .- ϕ_i2_cdf))
+
+    [prob_T_1, prob_T_2, prob_T_3, prob_T_4]
+end
+
+# ghk_wrapper: This function calls the quadrature function for each
+#              observation, and modifies the paramters as given.
+function ghk_wrapper(X, Z, param)
+
+    obs = size(X, 1)                         # number of rows/observations
+    ghk_probs = SharedArray{Float64}(obs, 4) # initialize array to store resulting choice probs
+
+    # call GHK function for each observation
+    @sync @distributed for index in 1:obs
+        ghk_probs[index, :] = ghk_method(param, X[index, :], Z[index, :])
+    end
+    return ghk_probs # return probs
+end
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -218,7 +271,7 @@ end
     end
 
     # calculate choice probability by dividing accepted counts by total # of simulations
-    probs = [count_T_1, count_T_2, count_T_3, count_T_4]./n_simu
+    probs = [count_T_1, count_T_2, count_T_3, count_T_4] ./n_simu
 
     return probs
 end
@@ -230,10 +283,9 @@ function accept_reject_wrapper(X, Z, param)
     obs = size(X, 1)                         # number of rows/observations
     a_r_probs = SharedArray{Float64}(obs, 4) # initialize array to store resulting choice probs
 
-    ϵ_i0, ϵ_i1, ϵ_i2 = draw_errors(param)    # draw errors
-
     # call quadrature function for each observation
     @sync @distributed for index in 1:obs
+        ϵ_i0, ϵ_i1, ϵ_i2 = draw_errors(param)    # draw errors
         a_r_probs[index, :] = accept_reject(param, X[index, :], Z[index, :], ϵ_i0, ϵ_i1, ϵ_i2)
     end
     return a_r_probs # return probs

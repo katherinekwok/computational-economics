@@ -47,14 +47,13 @@ quad_probs = quadrature_wrapper(X, Z, KPU_d1, KPU_d2, param)
 #   (2) use GHK method to predict choice probabilities
 # ---------------------------------------------------------------------------- #
 
-
+ghk_probs = ghk_wrapper(X, Z, param)
 
 # ---------------------------------------------------------------------------- #
 #   (3) use accept/reject method to predict choice probabilities
 # ---------------------------------------------------------------------------- #
 
 a_r_probs = accept_reject_wrapper(X, Z, param)
-
 
 # ---------------------------------------------------------------------------- #
 #   (4) run maximum likelihood using quadrature method
