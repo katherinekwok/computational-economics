@@ -336,13 +336,11 @@ function log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 0)
 
     # output sum of log likelihood for given T = 1 or 2 or 3
     for i in 1:size(X)[1]
-        #product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
-        #
-        #if product > 0
-        #    output += log(product)
-        #end
+        product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
 
-        output += log(quad_probs[i, T])
+        if product > 0
+            output += log(product)
+        end
     end
 
     output
@@ -378,6 +376,9 @@ function output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path)
     # add names
     var_names = ["P(Ti = 1 | Xi, Zit, θ)", "P(Ti = 2 | Xi, Zit, θ)", "P(Ti = 3 | Xi, Zit, θ)", "P(Ti = 4| Xi, Zit, θ)"]
     prob_output = hcat(var_names, quad_avg, ghk_avg, a_r_avg)
+    prob_output = DataFrame(prob_output, :auto)
+    rename!(prob_output,[:choice_probabilities,:quadrature, :GHK, :accept_reject])
+
 
     # output to latex and CSV
     latexify(prob_output, env = :table) |> print

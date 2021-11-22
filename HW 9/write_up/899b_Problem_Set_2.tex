@@ -66,19 +66,21 @@ The likelihood for holding a loan for $T_i$ period(s) is given in the handout. T
 
 \noindent \textbf{Findings:} The attached code file ``main\_program.jl" runs the three numerical integration methods using the given paramter values, and then runs maximum likelihood estimation of the probability of repaying loans in different periods using the quadrature method. My results are summarized in the tables below. 
 
-
-
-
 \begin{table}[!htbp]
 \centering 
 \caption{Average Choice Probabilities by Method}\label{tab_prob}
-\include{hessian}
+\include{choice_probabilities}
 \end{table}
 
+\FloatBarrier
+\noindent At the given parameter values, the choice probabilities seem to match with the observed avergage choices in the data for $T_i = 1$ and $T_i = 4$. However, the choice probabilities for $T_i=2$ and $T_i = 3$ seem particularly low.  
+
+\clearpage 
+For the coefficients, my estimates for i\_close\_0 (1 - i\_open\_0) are much larger than the STATA results. My estimates for the next two choices seem relatively closer, though they are still not exactly matching the STATA results either. If I had more time, I would look into this, to see what is causing the issue.
 \begin{table}[!htbp]
 	\centering 
 	\caption{Probit Coefficients Estimated by MLE}\label{tab_mle}
-	\include{hessian}
+	\include{probit_coefficients}
 \end{table}
 
 

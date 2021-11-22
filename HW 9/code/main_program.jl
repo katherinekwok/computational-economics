@@ -74,4 +74,4 @@ end
 # ---------------------------------------------------------------------------- #
 
 output_coefficients(θ_bfgs_all, param, output_path)
-output_choice_probs(quad_probs, ghk_probs, a_r_probs, output_path)
+output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path)
