@@ -1,0 +1,88 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin = 0.6in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\de}{\mathrm{d}}
+\newcommand{\one}{\mathds{1}}
+
+\title{ECON 899b: Problem Set 2}
+\author{Katherine Kwok\footnote{I collaborated with Anya Tarascina and Claire Kim on this assignment.}}
+\date{November 2021}
+
+\begin{document}
+
+\maketitle
+\noindent \textbf{Overview:} For this assignment, the goal is program different methods of numerical integration to evaluate the choice probabilities and log-likelihood in a multinomial probit model. In particular, we use the quadrature method, GHK method, and accept/reject method to evaluate the choice probabilities. \\\\
+\noindent \textbf{Set Up:} Our goal is to evaluate the likelihood for individuals to repay their loans in different periods, using a sample from the National Survey of Mortgage Originations Public Use File. There are two related outcome variables $T_i \in \{1, 2, 3, 4\}$, the period of the loan, and $Y_it$, whether the loan was prepaid at the end of period t. The relationship between the variables are as follows: 
+\begin{align}
+	T_i &= \begin{cases} 1 &\text{If } Y_{i0} = 1 \\
+									2 & \text{If } Y_{i0} = 0 \text{ and } Y_{i1} = 1 \\
+									3 & \text{If } Y_{i0} = 0 \text{ and } Y_{i1} = 0 \text{ and } Y_{i2} = 1 \\
+									3 & \text{If } Y_{i0} = 0 \text{ and } Y_{i1} = 0 \text{ and } Y_{i2} = 0 \end{cases}
+\end{align}
+And we assume that at each period $t$, $Y_{it} = 1$ if $\alpha_t + X_i \beta + Z+{it} \gamma + \epsilon_{it} > 0$, where $X_i$ is a vector of time-invariant borrower characteristics, and $Z_{it}$ is a vector of time-varying borrower characteristics. We further impose that $\epsilon_{i0} \sim N(0, \sigma_0^2)$ where $\sigma_0^2 = \frac{1}{(1-\rho)^2}$, and $\epsilon_{it} = \rho \epsilon_{it-1} + \eta_{it}$ for all $t >1$ and $\eta_{it} \sim N(0,1)$. \\\\
+The likelihood for holding a loan for $T_i$ period(s) is given in the handout. These choice probabilities are expressed in terms of $\alpha_t + X_i \beta + Z+{it} \gamma + \epsilon_{it}$. Essentially, we can use the CDFs and PDFs of the standard normal distribution, integrated between negative infinity and the condition associated with each choice, to find the likelihoods. \\\\
+\textbf{Numerical Integration Methods: } The attached code file ``helper\_functions.jl" contains the programs for quadrature method, GHK method, and accept/reject method. I have written a brief sketch of my approach to each method below: 
+
+\begin{enumerate}
+	\item \textbf{Quadrature Method:} For this method, I use the definition of choice probabilities in the handouts and the KPU sparse-grid nodes and weights (at precision 20). For the likelihood of $T_i = 1$, I only need to evaluate the CDF of the standard normal distribution at $(-\alpha_0 - X_i \beta - Z_{it} \gamma)/\sigma_0$. \\\\
+	For the likelihoods of $T_i \in \{2, 3, 4\}$, I need to use the KPU sparse-grids. The likelihood of $T_i = 2$ requires a single integration between negative infinity and $\alpha_0 + X_i \beta + Z_{it} \gamma$, while the likelihoods of $T_i \in \{3, 4\}$ require double integrations over negative infinity and $\alpha_0 + X_i \beta + Z_{it} \gamma$, negative and infinity and $\alpha_1 + X_i \beta + Z_{it} \gamma$. \\\\
+	Briefly, the steps for $T_i \in \{2, 3, 4\}$ are: First, transform the grid points from (0,1) into the appropriate range of the integration. Second, take the transformed grid point and plug it into the CDF and density functions as defined for each choice probability. Then, multiply the product from the second step with the KPU weights and sum. The weighted sum is the choice probability for $T_i \in \{2, 3, 4\}$.
+	
+	\item \textbf{GHK Method: } For this method, the idea is to utilize the nested structure of the error terms for $t \in \{0, 1, 2\}$. I sequentially draw the error terms and define the choice probabilities as follows:
+		\begin{itemize}
+			\item Compute $\Phi_{i0}$ = Pr($\epsilon_{i0} < \alpha_0 - X_i \beta - Z_{it} \gamma$), and draw $\epsilon_{i0}^r$ from the truncated standard normal distribution $\Phi((\alpha_0 - X_i \beta - Z_{it})/\sigma)$. The choice probability $Pr(T_i = 1 | X_i, Z_{it}, \theta) = \Phi_{i0}$.
+			\item Draw $\eta_{i1}^r$ from the truncated standard normal distribution $\Phi(\alpha_1 - X_i \beta - Z_{it}- \rho \epsilon_{i0}^r)$. Compute $\Phi_{i1}$ = Pr($\eta_{i1} < \alpha_1 - X_i \beta - Z_{it} \gamma - \rho \epsilon_{i0}^r$). Calculate $\epsilon_{i1}^r = \rho \epsilon_{i0}^r + \eta_{i1}^r$. The choice probability $Pr(T_i = 2 | X_i, Z_{it}, \theta) = (1- \Phi_{i0}) \Phi_{i1}$. 
+			\item Compute $\Phi_{i2}$ = Pr($\eta_{i2} < \alpha_2 - X_i \beta - Z_{it} \gamma - \rho \epsilon_{i1}^r$). The choice probability $Pr(T_i = 3 | X_i, Z_{it}, \theta) = (1- \Phi_{i0}) (1-\Phi_{i1}) \Phi_{i2}$. 
+			\item The choice probability $Pr(T_i = 4 | X_i, Z_{it}, \theta) = (1- \Phi_{i0}) (1-\Phi_{i1}) (1-\Phi_{i2})$.
+		\end{itemize}
+	I repeat the algorithm above for 100 simulations, and then compute the average choice probabilities for each observation in the data set. 
+	
+	\item \textbf{Accept/Reject Method: } For this method, the idea is to repeatedly make random draws of the error terms and check whether they fall in the bounds corresponding to each choice. The steps I followed are as follows:
+		\begin{itemize}
+			\item Randomly draw 100 $\epsilon_{i0}, \eta_{i1}, \eta_{i2}$ values from the uniform distribution over (0,1). Rather than using the random draw, an alternative is to use Halton sequences.
+			\item Using the inverse CDF of the normal and standard normal distributions, convert $\epsilon_{i0}, \eta_{i1}, \eta_{i2}$ and compute $\epsilon_{i1} = \rho \epsilon_{i0} + \eta_{i1}$, $\epsilon_{i2} = \rho \epsilon_{i1} + \eta_{i2}$.
+			\item Using similar conditions as with the quadrature method, check if the drawn $\epsilon_{i0}, \epsilon_{i1}, \epsilon_{i2}$ are within the appropriate ranges for the choices associated with $T_i = 1, 2, 3, 4$.
+			\item Calculate the choice probabilities as number of accepted draws divided by total number of draws.	
+		\end{itemize}
+	\end{enumerate}
+
+\noindent \textbf{Findings:} The attached code file ``main\_program.jl" runs the three numerical integration methods using the given paramter values, and then runs maximum likelihood estimation of the probability of repaying loans in different periods using the quadrature method. My results are summarized in the tables below. 
+
+
+
+
+\begin{table}[!htbp]
+\centering 
+\caption{Average Choice Probabilities by Method}\label{tab_prob}
+\include{hessian}
+\end{table}
+
+\begin{table}[!htbp]
+	\centering 
+	\caption{Probit Coefficients Estimated by MLE}\label{tab_mle}
+	\include{hessian}
+\end{table}
+
+
+
+
+\end{document}
+
