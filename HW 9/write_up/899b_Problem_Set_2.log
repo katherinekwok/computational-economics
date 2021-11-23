@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  22 NOV 2021 12:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  22 NOV 2021 22:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -223,8 +223,8 @@ Package: lscape 2000/10/22 v3.01 Landscape Pages (DPC)
 )
 Package pdflscape Info: Auto-detected driver: pdftex on input line 81.
 )
-(./899b_Problem_Set_2.aux (./choice_probabilities.aux)
-(./probit_coefficients.aux))
+(./899b_Problem_Set_2.aux (./choice_probabilities_observed_choice.aux)
+(./choice_probabilities.aux) (./probit_coefficients.aux))
 \openout1 = `899b_Problem_Set_2.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 29.
@@ -385,30 +385,47 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--48
 {/usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 51.
+
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 69--72
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 69--72
+
+ []
+
+\openout2 = `choice_probabilities_observed_choice.aux'.
+
+(./choice_probabilities_observed_choice.tex)
 \openout2 = `choice_probabilities.aux'.
 
+ (./choice_probabilities.tex)
+[3
 
-(./choice_probabilities.tex) [2
+
+
 
 
 ]
 \openout2 = `probit_coefficients.aux'.
 
- (./probit_coefficients.tex) [3
+ (./probit_coefficients.tex) [4
 
 
 
-]
-(./899b_Problem_Set_2.aux (./choice_probabilities.aux)
+] (./899b_Problem_Set_2.aux
+(./choice_probabilities_observed_choice.aux) (./choice_probabilities.aux)
 (./probit_coefficients.aux)) ) 
 Here is how much of TeX's memory you used:
- 4542 strings out of 492616
- 68443 string characters out of 6129482
- 147819 words of memory out of 5000000
- 8370 multiletter control sequences out of 15000+600000
- 12135 words of font info for 48 fonts, out of 8000000 for 9000
+ 4554 strings out of 492616
+ 68824 string characters out of 6129482
+ 148155 words of memory out of 5000000
+ 8374 multiletter control sequences out of 15000+600000
+ 12781 words of font info for 50 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,16n,40p,482b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,16n,40p,744b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2019/texmf-dist/fonts/type1/p
 ublic/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/pu
 blic/amsfonts/cm/cmex10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/pub
@@ -421,11 +438,12 @@ nts/cm/cmr6.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts
 /cm/cmr8.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm
 /cmsy10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/
 cmsy7.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-sy8.pfb>
-Output written on 899b_Problem_Set_2.pdf (3 pages, 134944 bytes).
+sy8.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmti
+10.pfb>
+Output written on 899b_Problem_Set_2.pdf (4 pages, 147414 bytes).
 PDF statistics:
- 62 PDF objects out of 1000 (max. 8388607)
- 44 compressed objects within 1 object stream
+ 69 PDF objects out of 1000 (max. 8388607)
+ 49 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

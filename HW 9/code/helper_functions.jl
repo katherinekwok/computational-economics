@@ -36,7 +36,7 @@
     β::Array{Float64, 1} = zeros(size(x_vars,1))
     γ::Array{Float64, 1} = fill(0.3, size(z_vars, 1))
     ρ::Float64 = 0.5
-    σ::Float64 = (1/(1-ρ)^2)
+    σ::Float64 = 1/(1-ρ)
 
     # simulation related variables
     n_simu::Int64 = 100 # number of simulations
@@ -57,11 +57,15 @@ function read_mortgage_data(file_path::String, param::Primitives)
     # select time-varying independent variable
     Z = Array(select(dt, z_vars))
 
-    # select dependent variable
+    # select dependent variable Y
     Y = Array(select(dt, y_vars)) # get i_open_0, i_open_1, i_open_2
     Y = 1 .- Y                    # convert to indicator is loan is paid
 
-    X, Z, Y
+    # select dependent variable T
+    T = Array(select(dt, "duration"))
+    T = convert(Array{Int64}, T)
+
+    X, Z, Y, T
 end
 
 # read_KPU_data: This function reads and prepares the Gaussian grid and weight
@@ -93,13 +97,13 @@ end
 function calculate_conditions(param, x, z)
     @unpack ρ, σ, α0, α1, α2, γ, β = param
 
-    a0_pos = α0 + x' * β + z' * γ
-    a1_pos = α1 + x' * β + z' * γ
-    a2_pos = α2 + x' * β + z' * γ
+    a0_pos = α0 + x' * β + z[1] * γ[1]
+    a1_pos = α1 + x' * β + z[2] * γ[2]
+    a2_pos = α2 + x' * β + z[3] * γ[3]
 
-    a0_neg = -α0 - x' * β - z' * γ
-    a1_neg = -α1 - x' * β - z' * γ
-    a2_neg = -α2 - x' * β - z' * γ
+    a0_neg = -α0 - x' * β - z[1] * γ[1]
+    a1_neg = -α1 - x' * β - z[2] * γ[2]
+    a2_neg = -α2 - x' * β - z[3] * γ[3]
 
     a0_pos, a1_pos, a2_pos, a0_neg, a1_neg, a2_neg
 
@@ -163,7 +167,6 @@ end
 #   (2) GHK method
 # ---------------------------------------------------------------------------- #
 
-
 # ghk_method: This function implements the GHK algorithm as detailed in JF's slides.
 #             We compute the choice probabilities sequentially, by drawing ϵ_i0,
 #             η_i1, η_i2 from truncated normal distributions specified by conditions
@@ -184,15 +187,16 @@ end
 
     # get truncated normal distribution of η_i1
     ϕ_i1_dis = truncated.(Normal(), -Inf, a1_neg .- ρ.*ϵ_i0)    # truncated normal dist for η_i1
-    ϕ_i1_cdf = cdf.(Normal(), a1_neg .- ρ.*ϵ_i0)                # CDF
     η_i1 = rand.(ϕ_i1_dis)                                      # draw from truncated normal dist
     ϵ_i1 = ρ*ϵ_i0 .+ η_i1                                       # calculate ϵ_i1
+    ϕ_i1_cdf = cdf.(Normal(), a1_neg)                           # CDF
 
     # get truncated normal distribution of η_i2
     ϕ_i2_dis = truncated.(Normal(), -Inf, a2_neg .- ρ.*ϵ_i1)    # truncated normal dist for η_i2
-    ϕ_i2_cdf = cdf.(Normal(), a2_neg .- ρ.*ϵ_i1)                # CDF
     η_i2 = rand.(ϕ_i2_dis)                                      # draw from truncated normal dist
     ϵ_i2 = ρ*ϵ_i1 .+ η_i2                                       # calculate ϵ_i2
+    ϕ_i2_cdf = cdf.(Normal(), a2_neg)                           # CDF
+
 
     # calculate mean choice probabilies across simulations
     prob_T_1 = mean(ϕ_i0_cdf)
@@ -242,7 +246,7 @@ function draw_errors(param)
     η_i2 = rand(Uniform(0, 1), n_simu)
 
     # transform from uniform to normal distributions using inverse CDF (i.e. quantile)
-    ϵ_i0 = quantile.(Normal(0, σ), ϵ_i0)
+    ϵ_i0 = quantile.(Normal(0, 1), ϵ_i0)* σ
     η_i1 = quantile.(Normal(0, 1), η_i1)
     η_i2 = quantile.(Normal(0, 1), η_i2)
 
@@ -271,13 +275,13 @@ end
         if ϵ_i0[i] < a0_neg
             count_T_1 += 1 # if satisfied condition for loan period T = 1
 
-        elseif ϵ_i0[i] < a0_pos && ϵ_i1[i] < a1_neg
+        elseif ϵ_i1[i] < a1_neg
             count_T_2 += 1 # if satisfied condition for loan period T = 2
 
-        elseif ϵ_i0[i] < a0_pos && ϵ_i1[i] < a1_pos && ϵ_i2[i] < a2_neg
+        elseif ϵ_i2[i] < a2_neg
             count_T_3 += 1 # if satisfied condition for loan period T = 3
 
-        elseif ϵ_i0[i] < a0_pos && ϵ_i1[i] < a1_pos && ϵ_i2[i] < a2_pos
+        elseif !(ϵ_i2[i] < a2_neg)
             count_T_4 += 1 # if satisfied condition for loan period T = 4
         end
     end
@@ -317,7 +321,7 @@ end
 
 # log_likelihood: This function defines log likelihood using the Gaussian
 #                 Quadrature integration method.
-function log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 0)
+function log_likelihood(X, Z, T, KPU_d1, KPU_d2, θ)
     output = 0.0 # output log likelihood
 
     # set parameter values
@@ -334,13 +338,10 @@ function log_likelihood(X, Z, Y, KPU_d1, KPU_d2, θ; T = 0)
     # call quadrature_wrapper to get choice probabilities
     quad_probs = quadrature_wrapper(X, Z, KPU_d1, KPU_d2, param)
 
-    # output sum of log likelihood for given T = 1 or 2 or 3
+    # output sum of log likelihood for given T = 1 or 2 or 3 or 4
     for i in 1:size(X)[1]
-        product = quad_probs[i, T]^(Y[i, T]) + (1-quad_probs[i, T])^(1-Y[i, T])
-
-        if product > 0
-            output += log(product)
-        end
+        observed_T = T[i]
+        output += quad_probs[i, observed_T] 
     end
 
     output
@@ -366,7 +367,7 @@ end
 
 # output_choice_prob: This function outputs the average choice probabilities for
 #                     each version (quadrature, ghk, accept/reject)
-function output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path)
+function output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path, T)
 
     # get means for each version
     quad_avg = round.([mean(quad_probs[:, 1]), mean(quad_probs[:, 2]), mean(quad_probs[:, 3]), mean(quad_probs[:, 4])], digits = 5)
@@ -379,9 +380,41 @@ function output_choice_prob(quad_probs, ghk_probs, a_r_probs, output_path)
     prob_output = DataFrame(prob_output, :auto)
     rename!(prob_output,[:choice_probabilities,:quadrature, :GHK, :accept_reject])
 
-
     # output to latex and CSV
     latexify(prob_output, env = :table) |> print
     CSV.write(output_path*"choice_probabilities.csv", prob_output)
+
+    # get average by correct probabilities: for each set of predicted choice
+    # probabilities, select the correct column based on the observed choice
+    quad_prob_observed_choice = zeros(size(quad_probs, 1))
+    ghk_prob_observed_choice = zeros(size(ghk_probs, 1))
+    a_r_prob_observed_choice = zeros(size(a_r_probs, 1))
+
+    # select the predicted probabilities corresponding to observed choice
+    for i in 1:size(T, 1)
+        quad_prob_observed_choice[i] = quad_probs[i, T[i]]
+        ghk_prob_observed_choice[i] = ghk_probs[i, T[i]]
+        a_r_prob_observed_choice[i] = a_r_probs[i, T[i]]
+    end
+
+    # summary statistics for each (quadrature, ghk, accept reject)
+    s_quad = summarystats(quad_prob_observed_choice)
+    output_quad = round.([s_quad.mean, s_quad.min, s_quad.q25, s_quad.median, s_quad.q75, s_quad.max], digits = 5)
+
+    g_quad = summarystats(ghk_prob_observed_choice)
+    output_ghk = round.([g_quad.mean, g_quad.min, g_quad.q25, g_quad.median, g_quad.q75, g_quad.max], digits = 5)
+
+    a_quad = summarystats(a_r_prob_observed_choice)
+    output_a_r = round.([a_quad.mean, a_quad.min, a_quad.q25, a_quad.median, a_quad.q75, a_quad.max], digits = 5)
+
+    # merge with names and convert to data frame
+    vnames = ["mean", "minimum", "q25", "median", "q75", "maximum"]
+    output = hcat(vnames, output_quad, output_ghk, output_a_r)
+    output = DataFrame(output, :auto)
+    rename!(output,[:statistic,:quadrature, :GHK, :accept_reject])
+
+    # output to latex and CSV
+    latexify(output, env = :table) |> print
+    CSV.write(output_path*"choice_probabilities_by_observed.csv", output)
 
 end
