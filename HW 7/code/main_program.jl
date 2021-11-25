@@ -15,6 +15,7 @@
 
 using CSV, DataFrames, Latexify                     # load packages for exporting data to csv
 using Parameters, Plots, Printf, LinearAlgebra      # load standard packages
+using Random, Distributions
 
 include("helper_functions.jl")                      # import all functions and strucs
 
