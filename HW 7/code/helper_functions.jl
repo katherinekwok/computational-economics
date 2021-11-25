@@ -41,6 +41,12 @@
 
     lag_length::Int64 = 4 # lag length for Newey-West method
 
+    # settings for number of moments
+    mean_opt::Bool = true   # indicator for whether or not to get mean
+    var_opt::Bool = true    # indicator for whether or not to get variance
+    ac_opt::Bool = true     # indicator for whether or not to get first order auto correlation
+    n_moms::Int64 = 3       # number of moments
+
 end
 
 
@@ -112,8 +118,8 @@ end
 # get_moments: This function gets relevant moments for the exercise. It can compute:
 #              mean, variance, autocorrelation. NOTE: By default, this function
 #              gets one moment (mean).
-function get_moments(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm;
-    mean_opt::Bool = true, var_opt::Bool = false, ac_opt::Bool = false)
+function get_moments(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm; return_data::Bool = false)
+    @unpack mean_opt, var_opt, ac_opt = algo
 
     # simulate H different AR(1) sequences of length T
     sim_data = simulate_data(ρ, σ, H, algo)
@@ -122,17 +128,25 @@ function get_moments(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm;
 
     # (1) get mean and variance only
     if mean_opt == true && var_opt == true && ac_opt == false
-        output_moments = [mean(get_mean(sim_data, H)), mean(get_variances(sim_data, H))]
+        output_moments = [mean(get_mean(sim_data, H)),mean(get_variances(sim_data, H))]
+
     # (2) get variance and auto correlation only
     elseif mean_opt == false && var_opt == true && ac_opt == true
-        output_moments = [mean(get_variances(sim_data, H)), mean(get_auto_corr(sim_data, algo, σ, H))]
+        output_moments = [mean(get_variances(sim_data, H)),mean(get_auto_corr(sim_data, algo, σ, H))]
+
     # (3) get all moments
     elseif mean_opt == true && var_opt == true && ac_opt == true
-        output_moments = [mean(get_mean(sim_data, H)), mean(get_variances(sim_data, H)),
-                        mean(get_auto_corr(sim_data, algo, σ, H))]
+        output_moments = [mean(get_mean(sim_data, H)),
+                          mean(get_variances(sim_data, H)),
+                          mean(get_auto_corr(sim_data, algo, σ, H))]
     end
 
-    output_moments
+    # output moments and/or data depending on request
+    if return_data == true
+        output_moments, sim_data
+    else
+        output_moments
+    end
 end
 
 # ------------------------------------------------------------------------ #
@@ -141,14 +155,12 @@ end
 
 # obj_func: This function defines the objective function to be minimized in the
 #           SMM algorithm.
-function obj_func(ρ::Float64, σ::Float64, algo::Algorithm, targ::Array{Float64},
-    W::Array{Float64, 2}; mean_opt_i::Bool = true, var_opt_i::Bool = false, ac_opt_i::Bool = false)
+function obj_func(ρ::Float64, σ::Float64, algo::Algorithm, targ::Array{Float64}, W::Array{Float64, 2})
 
     @unpack H_model = algo
 
     # call get_moments to get model moments
-    model_mom = get_moments(ρ, σ, H_model, algo;
-                mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i)
+    model_mom = get_moments(ρ, σ, H_model, algo)
 
     # define J (objective function)
     g = targ .- model_mom           # vector of distance between data and model moments
@@ -159,16 +171,16 @@ end
 
 # newey_west: This function estimates the asymptotic variance-covariance matrix
 #             using the Newey-West method.
-function newey_west(algo::Algorithm, sim_mom::Array{Float64, 2})
-    @unpack lag_length, H_model = algo
+function newey_west(algo::Algorithm, sim_mom::Array{Float64}, sim_data::Array{Float64, 2})
+    @unpack lag_length, H_model, n_moms = algo
 
     # need to call the gamma function twice, once at 0 and once for lags
-    gamma_0 = get_gamma(algo, sim_mom, 0)
+    gamma_0 = get_gamma(algo, sim_mom, sim_data, 0)
 
     # loop over lags to sum gamma_j for each lag period
-    sum_gamma_j = 0.0
-    for j = 1:lag_legnth
-        gamma_j = get_gamma(algo, sim_mom, j)
+    sum_gamma_j = zeros(n_moms, n_moms)
+    for j = 1:lag_length
+        gamma_j = get_gamma(algo, sim_mom, sim_data, j)
         sum_gamma_j += (1-(j/(lag_length + 1))) .* (gamma_j + gamma_j')
     end
 
@@ -178,53 +190,74 @@ function newey_west(algo::Algorithm, sim_mom::Array{Float64, 2})
     return S
 end
 
+# get_obs_moment
+function get_obs_moment(sim_obs::Float64, sim_obs_tm1::Float64, sim_data::Array{Float64, 2},
+    i_H::Int64, algo::Algorithm)
+
+    @unpack mean_opt, var_opt, ac_opt = algo
+
+    # get mean, variance, auto correlation for given observation
+    sim_mean = mean(sim_data[i_H, :])
+    sim_var = (sim_obs - sim_mean)^2
+    sim_ac = (sim_obs - sim_mean) * (sim_obs_tm1 - sim_mean)
+
+    # select appropriate moments depending on user input
+    if mean_opt == true && var_opt == true && ac_opt == false     # get mean and variance only
+        obs_mom = [sim_mean, sim_var]
+    elseif mean_opt == false && var_opt == true && ac_opt == true # get variance and auto correlation only
+        obs_mom = [sim_var, sim_ac]
+    elseif mean_opt == true && var_opt == true && ac_opt == true  # get all moments
+        obs_mom = [sim_mean, sim_var, sim_ac]
+    end
+
+    obs_mom
+end
+
+
 # get_gamma
-function get_gamma(algo::Algorithm, res_sim::Array{Any}, lag::Int64)
-    @unpack H, T = prim
+function get_gamma(algo::Algorithm, sim_mom::Array{Float64}, sim_data::Array{Float64, 2}, lag::Int64)
+    @unpack H_model, T, n_moms, mean_opt, var_opt, ac_opt = algo
 
-    """
-    """
-    mom_sim = [res_sim[1], res_sim[2], res_sim[3]]
-    data_sim = res_sim[4]
+    gamma_tot = zeros(n_moms, n_moms)
 
-    gamma_tot = zeros(length(mom_inx),length(mom_inx))
+    # calculate gamma for a given number of lagged periods (between 0 to lag length)
+    for i_T = (1+lag):T
+        for i_H = 1:H_model
 
-    for t = (1+lag):T
-        for h = 1:H
-            # No Lagged
-            avg_obs = data_sim[t,h]
-            if t > 1
-                avg_obs_tm1 = data_sim[t-1,h]
-            else
-                avg_obs_tm1 = 0
+            # (1) get data point in sequence
+            sim_obs = sim_data[i_H, i_T]
+
+            if i_T == 1    # if at first time period, set previous observation to 0
+                sim_obs_tm1 = 0.0
+            else           # else, get the previous observation
+                sim_obs_tm1 = sim_data[i_H, i_T-1]
             end
-            avg_h = mean(data_sim[:,h])
-            var_obs = (avg_obs - avg_h)^2
-            auto_cov_obs = (avg_obs - avg_h)*(avg_obs_tm1 - avg_h)
 
-            mom_obs_diff = [avg_obs, var_obs, auto_cov_obs] - mom_sim
-            mom_obs_diff = mom_obs_diff
+            # get moments for given data point then compare to simulated moments
+            obs_mom = get_obs_moment(sim_obs, sim_obs_tm1, sim_data, i_H, algo)
+            mom_obs_diff = obs_mom - sim_mom
 
-            # Lagged
-            avg_lag = data_sim[t-lag,h]
-            if t - lag > 1
-                avg_lag_tm1 = data_sim[t-lag-1,h]
-            else
-                avg_lag_tm1 = 0
+            # (2) get lagged data point
+            sim_lag = sim_data[i_H, i_T-lag]
+
+            if i_T - lag == 1 # if i_T - lag is first time period, set previous observation to 0
+                sim_lag_tm1 = 0.0
+            else              # else, get the previous observation
+                sim_lag_tm1 = sim_data[i_H, i_T-lag-1]
             end
-            avg_h = mean(data_sim[:,h])
-            var_lag = (avg_lag - avg_h)^2
-            auto_cov_lag = (avg_lag - avg_h)*(avg_lag_tm1 - avg_h)
 
+            # get moments for lagged data point then compare to simulated moments
+            lag_mom = get_obs_moment(sim_lag, sim_lag_tm1, sim_data, i_H, algo)
+            mom_lag_diff = lag_mom - sim_mom
 
-            mom_lag_diff = [avg_lag, var_lag, auto_cov_lag] - mom_sim
-            mom_lag_diff = mom_lag_diff
-
-            gamma_tot += mom_obs_diff*mom_lag_diff'
+            # (3) multiply obs diff with lagged diff and add to gamma
+            println(mom_obs_diff * mom_lag_diff')
+            println(gamma_tot)
+            gamma_tot .+= mom_obs_diff * mom_lag_diff'
         end
     end
 
-    gamma = (1/(T*H)).*gamma_tot
+    gamma = (1/(T * H_model)) .* gamma_tot
 
     return gamma
 end
@@ -243,26 +276,25 @@ end
 # ------------------------------------------------------------------------ #
 
 function solve_smm()
-    algo = Algorithm()
+
+    # initialize algorithm settings 
+    algo = Algorithm(ac_opt = false, n_moms = 2)
 
     # get_moments for true data
-    @unpack H_true, H_model = algo
-    targ = get_moments(algo.ρ_0, algo.σ_0, H_true, algo; mean_opt = true, var_opt = true)
+    @unpack H_true, H_model, n_moms = algo
+    targ = get_moments(algo.ρ_0, algo.σ_0, H_true, algo)
 
     # minimize objective function with W = I
-    W = Matrix{Float64}(I, 2, 2)
-    b_1 = optimize(b -> obj_func(b[1], b[2], algo, targ, W; mean_opt_i = true,
-          var_opt_i = true), [0.5, 1.0]).minimizer
+    W = Matrix{Float64}(I, n_moms, n_moms)
+    b_1 = optimize(b -> obj_func(b[1], b[2], algo, targ, W), [0.5, 1.0]).minimizer
 
     # compute SE of parameters that minimize above
-    b_1_mom = get_moments(b_1[1], b_1[2], H_model, algo; mean_opt = true, var_opt = true)
-    S = newey_west(algo, b_1_mom)
+    b_1_mom, b_1_data = get_moments(b_1[1], b_1[2], H_model, algo; return_data = true)
+    S = newey_west(algo, b_1_mom, b_1_data)
 
     # minimize objective function with W = S^-1
     W_opt = inv(S)
-    b_2 = optimize(b -> obj_func(b[1], b[2], algo, targ, W_opt; mean_opt_i = true,
-          var_opt_i = true), [0.5, 1.0]).minimizer
-
+    b_2 = optimize(b -> obj_func(b[1], b[2], algo, targ, W_opt), [0.5, 1.0]).minimizer
 
     # compute SE of parameters that minimize above
 
