@@ -15,13 +15,14 @@
 
 using CSV, DataFrames, Latexify                     # load packages for exporting data to csv
 using Parameters, Plots, Printf, LinearAlgebra      # load standard packages
-using Random, Distributions
+using Random, Distributions, Optim
 
 include("helper_functions.jl")                      # import all functions and strucs
 
 # ------------------------------------------------------------------------ #
 #  (1) Just identified (moments are mean and variance)
 # ------------------------------------------------------------------------ #
+
 
 # ------------------------------------------------------------------------ #
 #  (2) Just identified (moments are variance and autocorrelation)

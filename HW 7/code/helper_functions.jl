@@ -25,7 +25,9 @@
 
 @with_kw struct Algorithm
 
-    T::Int64 = 200  # length of AR(1) sequences
+    T::Int64 = 200      # length of AR(1) sequences
+    H_true::Int64 = 1   # number of true AR(1) sequences
+    H_model::Int64 = 10 # number of model AR(1) sequences
 
     # paramters for true data generation
     ρ_0::Float64 = 0.5 # coefficient on term for previous period in AR(1)
@@ -109,7 +111,7 @@ end
 #              mean, variance, autocorrelation. NOTE: By default, this function
 #              gets one moment (mean).
 function get_moments(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm;
-    mean_opt::Bool = true, var_opt::Bool = false, auto_corr_opt::Bool = false)
+    mean_opt::Bool = true, var_opt::Bool = false, ac_opt::Bool = false)
 
     # simulate H different AR(1) sequences of length T
     sim_data = simulate_data(ρ, σ, H, algo)
@@ -117,13 +119,13 @@ function get_moments(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm;
     # compute average moments across each H by specification
 
     # (1) get mean and variance only
-    if mean_opt == true && var_opt == true && auto_corr_opt == false
+    if mean_opt == true && var_opt == true && ac_opt == false
         output_moments = [mean(get_mean(sim_data, H)), mean(get_variances(sim_data, H))]
     # (2) get variance and auto correlation only
-    elseif mean_opt == false && var_opt == true && auto_corr_opt == true
+    elseif mean_opt == false && var_opt == true && ac_opt == true
         output_moments = [mean(get_variances(sim_data, H)), mean(get_auto_corr(sim_data, algo, σ, H))]
     # (3) get all moments
-    elseif mean_opt == true && var_opt == true && auto_corr_opt == true
+    elseif mean_opt == true && var_opt == true && ac_opt == true
         output_moments = [mean(get_mean(sim_data, H)), mean(get_variances(sim_data, H)),
                         mean(get_auto_corr(sim_data, algo, σ, H))]
     end
@@ -135,14 +137,42 @@ end
 # (2) Minimizing objective function
 # ------------------------------------------------------------------------ #
 
-function objective_func()
+# obj_func: This function defines the objective function to be minimized in the
+#           SMM algorithm.
+function obj_func(ρ::Float64, σ::Float64, algo::Algorithm, targ::Array{Float64},
+    W::Array{Float64, 2}; mean_opt_i::Bool = true, var_opt_i::Bool = false, ac_opt_i::Bool = false)
+
+    @unpack H_model = algo
+
     # call get_moments to get model moments
+    model_mom = get_moments(ρ, σ, H_model, algo;
+                mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i)
+
     # define J (objective function)
+    g = targ .- model_mom           # vector of distance between data and model moments
+    J = g' * W * g                  # objective function
+
+    return J
 end
 
-function newey_west()
+function newey_west(algo::Algorithm, )
     # see reference code from Phil and slides
     # need to call the gamma function twice, once for standard and once for lags
+
+    """
+    Phil's code
+    """
+    lag_max = 4
+    Sy = GammaFunc(prim, res_sim, 0)
+
+    # loop over lags
+    for i = 1:lag_max
+        gamma_i = GammaFunc(prim, res_sim, i)
+        Sy += (gamma_i + gamma_i').*(1-(i/(lag_max + 1)))
+    end
+    S = (1 + 1/prim.H).*Sy
+
+    return S
 end
 
 # ------------------------------------------------------------------------ #
@@ -161,13 +191,29 @@ function solve_smm()
     # see phil's code for reference
 
     # get_moments for true data
+    algo = Algorithm()
+    targ = get_moments(algo.ρ_0, algo.σ_0, 1, algo; mean_opt = true, var_opt = true)
 
     # minimize objective function with W = I
+    W = Matrix{Float64}(I, 2, 2)
+    b_1 = optimize(b -> obj_func(b[1], b[2], algo, targ, W; mean_opt_i = true,
+          var_opt_i = true), [0.5, 1.0]).minimizer
 
     # compute SE of parameters that minimize above
 
     # minimize objective function with W = S^-1
 
     # compute SE of parameters that minimize above
+
+    """
+    Phil's version
+    """
+    @unpack T, H = prim
+
+    # Step 2: solve for b_2
+    res_sim = sim_moments(b_1[1], b_1[2], prim, targ)
+    S = NeweyWest(prim, res_sim)
+    W_opt = inv(S)
+    b_2 = optimize(b->obj_func(b[1], b[2], prim, targ, W_opt), [0.5, 1.0]).minimizer
 
 end
