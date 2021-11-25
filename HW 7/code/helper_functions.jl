@@ -37,7 +37,9 @@
     μ_0::Float64 = 0   # mean for error term ε in AR(1)
     x_0::Float64 = 0   # initial term for AR(1)
 
-    seed_0::Int64 = 1234 # set seed for random draws
+    seed_0::Int64 = 1234  # set seed for random draws
+
+    lag_length::Int64 = 4 # lag length for Newey-West method
 
 end
 
@@ -155,25 +157,78 @@ function obj_func(ρ::Float64, σ::Float64, algo::Algorithm, targ::Array{Float64
     return J
 end
 
-function newey_west(algo::Algorithm, )
-    # see reference code from Phil and slides
-    # need to call the gamma function twice, once for standard and once for lags
+# newey_west: This function estimates the asymptotic variance-covariance matrix
+#             using the Newey-West method.
+function newey_west(algo::Algorithm, sim_mom::Array{Float64, 2})
+    @unpack lag_length, H_model = algo
 
-    """
-    Phil's code
-    """
-    lag_max = 4
-    Sy = GammaFunc(prim, res_sim, 0)
+    # need to call the gamma function twice, once at 0 and once for lags
+    gamma_0 = get_gamma(algo, sim_mom, 0)
 
-    # loop over lags
-    for i = 1:lag_max
-        gamma_i = GammaFunc(prim, res_sim, i)
-        Sy += (gamma_i + gamma_i').*(1-(i/(lag_max + 1)))
+    # loop over lags to sum gamma_j for each lag period
+    sum_gamma_j = 0.0
+    for j = 1:lag_legnth
+        gamma_j = get_gamma(algo, sim_mom, j)
+        sum_gamma_j += (1-(j/(lag_length + 1))) .* (gamma_j + gamma_j')
     end
-    S = (1 + 1/prim.H).*Sy
+
+    # calculate asymptotic variance-covariance matrix
+    S = (1 + (1/H_model)) .* (gamma_0 + sum_gamma_j)
 
     return S
 end
+
+# get_gamma
+function get_gamma(algo::Algorithm, res_sim::Array{Any}, lag::Int64)
+    @unpack H, T = prim
+
+    """
+    """
+    mom_sim = [res_sim[1], res_sim[2], res_sim[3]]
+    data_sim = res_sim[4]
+
+    gamma_tot = zeros(length(mom_inx),length(mom_inx))
+
+    for t = (1+lag):T
+        for h = 1:H
+            # No Lagged
+            avg_obs = data_sim[t,h]
+            if t > 1
+                avg_obs_tm1 = data_sim[t-1,h]
+            else
+                avg_obs_tm1 = 0
+            end
+            avg_h = mean(data_sim[:,h])
+            var_obs = (avg_obs - avg_h)^2
+            auto_cov_obs = (avg_obs - avg_h)*(avg_obs_tm1 - avg_h)
+
+            mom_obs_diff = [avg_obs, var_obs, auto_cov_obs] - mom_sim
+            mom_obs_diff = mom_obs_diff
+
+            # Lagged
+            avg_lag = data_sim[t-lag,h]
+            if t - lag > 1
+                avg_lag_tm1 = data_sim[t-lag-1,h]
+            else
+                avg_lag_tm1 = 0
+            end
+            avg_h = mean(data_sim[:,h])
+            var_lag = (avg_lag - avg_h)^2
+            auto_cov_lag = (avg_lag - avg_h)*(avg_lag_tm1 - avg_h)
+
+
+            mom_lag_diff = [avg_lag, var_lag, auto_cov_lag] - mom_sim
+            mom_lag_diff = mom_lag_diff
+
+            gamma_tot += mom_obs_diff*mom_lag_diff'
+        end
+    end
+
+    gamma = (1/(T*H)).*gamma_tot
+
+    return gamma
+end
+
 
 # ------------------------------------------------------------------------ #
 # (3) Computing SE
@@ -188,11 +243,11 @@ end
 # ------------------------------------------------------------------------ #
 
 function solve_smm()
-    # see phil's code for reference
+    algo = Algorithm()
 
     # get_moments for true data
-    algo = Algorithm()
-    targ = get_moments(algo.ρ_0, algo.σ_0, 1, algo; mean_opt = true, var_opt = true)
+    @unpack H_true, H_model = algo
+    targ = get_moments(algo.ρ_0, algo.σ_0, H_true, algo; mean_opt = true, var_opt = true)
 
     # minimize objective function with W = I
     W = Matrix{Float64}(I, 2, 2)
@@ -200,20 +255,16 @@ function solve_smm()
           var_opt_i = true), [0.5, 1.0]).minimizer
 
     # compute SE of parameters that minimize above
+    b_1_mom = get_moments(b_1[1], b_1[2], H_model, algo; mean_opt = true, var_opt = true)
+    S = newey_west(algo, b_1_mom)
 
     # minimize objective function with W = S^-1
+    W_opt = inv(S)
+    b_2 = optimize(b -> obj_func(b[1], b[2], algo, targ, W_opt; mean_opt_i = true,
+          var_opt_i = true), [0.5, 1.0]).minimizer
+
 
     # compute SE of parameters that minimize above
 
-    """
-    Phil's version
-    """
-    @unpack T, H = prim
-
-    # Step 2: solve for b_2
-    res_sim = sim_moments(b_1[1], b_1[2], prim, targ)
-    S = NeweyWest(prim, res_sim)
-    W_opt = inv(S)
-    b_2 = optimize(b->obj_func(b[1], b[2], prim, targ, W_opt), [0.5, 1.0]).minimizer
 
 end
