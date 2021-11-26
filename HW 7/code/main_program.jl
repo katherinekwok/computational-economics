@@ -23,11 +23,16 @@ include("helper_functions.jl")                      # import all functions and s
 #  (1) Just identified (moments are mean and variance)
 # ------------------------------------------------------------------------ #
 
+solve_smm(true, true, false, 2)
 
 # ------------------------------------------------------------------------ #
 #  (2) Just identified (moments are variance and autocorrelation)
 # ------------------------------------------------------------------------ #
 
+solve_smm(false, true, true, 2)
+
 # ------------------------------------------------------------------------ #
 #  (3) Overidentified  (moments ares mean, variance, autocorrelation)
 # ------------------------------------------------------------------------ #
+
+bootstrap_smm(true, true, true, 3; n_bootstrap = 100)
