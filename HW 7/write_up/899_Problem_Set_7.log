@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  27 NOV 2021 17:38
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  27 NOV 2021 17:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -363,7 +363,14 @@ Underfull \hbox (badness 10000) in paragraph at lines 64--66
 
 [2
 
-] [3
+]
+Underfull \hbox (badness 10000) in paragraph at lines 106--108
+
+ []
+
+[3
+
+] [4
 
 ] (./899_Problem_Set_7.aux) ) 
 Here is how much of TeX's memory you used:
@@ -389,10 +396,10 @@ msy7.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cms
 y8.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt1
 2.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/symbols/m
 sbm10.pfb>
-Output written on 899_Problem_Set_7.pdf (3 pages, 138639 bytes).
+Output written on 899_Problem_Set_7.pdf (4 pages, 139607 bytes).
 PDF statistics:
- 70 PDF objects out of 1000 (max. 8388607)
- 50 compressed objects within 1 object stream
+ 73 PDF objects out of 1000 (max. 8388607)
+ 52 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
