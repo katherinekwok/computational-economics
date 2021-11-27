@@ -35,4 +35,4 @@ solve_smm(false, true, true, 2)
 #  (3) Overidentified  (moments ares mean, variance, autocorrelation)
 # ------------------------------------------------------------------------ #
 
-bootstrap_smm(true, true, true, 3; n_bootstrap = 100)
+bootstrap_smm(true, true, true, 3; n_bootstrap = 10)

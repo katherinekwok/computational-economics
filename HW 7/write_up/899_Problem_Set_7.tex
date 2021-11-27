@@ -1,0 +1,126 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin = 0.6in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\de}{\mathrm{d}}
+\newcommand{\one}{\mathds{1}}
+
+\title{ECON 899: Problem Set 7}
+\author{Katherine Kwok\footnote{I collaborated with Anya Tarascina and Claire Kim on this assignment.}}
+\date{November 2021}
+
+\begin{document}
+
+\maketitle
+\noindent \textbf{Overview:} For this assignment, the goal is use Simulated Method of Moments to estimate paramters of an AR(1) process. 
+\section*{Asymptotic moments} 
+First, we derive the asymptotic moments associated with the mean, variance, and first order autocorrelation. The moments are summarized below:
+\begin{align*}
+	m_3(z_t) &= \begin{pmatrix} z_t \\ (z_t - \bar{z})^2 \\ (z_t - \bar{z}) (z_{t-1} - \bar{z})\end{pmatrix}
+\end{align*}
+The true data generating AR(1) progress is 
+\begin{align*}
+	x_t = \rho_0 x_{t-1} + \epsilon_t
+\end{align*}
+where $\epsilon_t \sim N(0, \sigma_0^2)$, $\rho_0 = 0.5$, $\sigma_0 = 1$, and $x_0 = 0$.
+Note that we can write the unconditional moments for the true data as $\mu(z) = \E[m(z)]$. We can derive the asymptotic moments as follows. 
+\begin{align*}
+\mu(z_t) &= \begin{pmatrix} \E[\rho_0 x_{t-1} + \epsilon_t] \\  \E[(\rho_0 x_{t-1} + \epsilon_t)^2] \\  \E[(\rho_0 x_{t-1} + \epsilon_t)(\rho_0 x_{t-2} + \epsilon_{t-1})]\end{pmatrix} \\
+			  &= \begin{pmatrix} \rho_0 \E[x_{t-1}] + \E[\epsilon_t] \\ 2\rho_0 \E[x_{t-1}\epsilon_t] + \rho_0^2 \E[x_{t-1}^2] + \E[\epsilon_t^2] \\  \rho_0^2 \E[x_{t-1}x_{t-2}] + \rho_0\E[x_{t-1}\epsilon_{t-1}] + \rho_0\E[x_{t-2} \epsilon_t] + \E[\epsilon_t\epsilon_{t-1}] \end{pmatrix} \\
+			  &= \begin{pmatrix} \rho_0 \E[\sum_{k = 0}^{t-1}\rho_0^k \epsilon_{t-k}] + 0 \\ 0 + \rho_0^2 (\frac{\sigma_0^2}{1-\rho_0^2}) + \sigma_0^2 \\  \rho_0 (\frac{\sigma_0^2}{1-\rho_0^2}) \end{pmatrix} \\
+			  &= \begin{pmatrix} 0  \\   (\frac{\sigma_0^2}{1-\rho_0^2}) \\  \rho_0 (\frac{\sigma_0^2}{1-\rho_0^2}) \end{pmatrix}
+\end{align*}
+
+\clearpage
+Then, we compute $\nabla_b g(b_0)$, using the asymptotic moments derived above: 
+\begin{align*}
+	\nabla_b g(b_0) &= \begin{pmatrix} \frac{\partial}{\partial \rho}0  & \frac{\partial}{\partial \sigma}0 \\  \frac{\partial}{\partial \rho} (\frac{\sigma^2}{1-\rho^2}) & \frac{\partial}{\partial \sigma} (\frac{\sigma^2}{1-\rho^2}) \\ \frac{\partial}{\partial \rho}   \rho (\frac{\sigma^2}{1-\rho^2}) & \frac{\partial}{\partial \sigma}  \rho (\frac{\sigma^2}{1-\rho^2})\end{pmatrix} \\
+	&= \begin{pmatrix} 0 & 0 \\ \frac{2\rho \sigma^2}{(1-\rho^2)^2} &  \frac{2 \sigma}{(1-\rho^2)} \\ \frac{\sigma^2}{(1-\rho^2)} + \frac{2\rho \sigma^2}{(1-\rho^2)^2} & \frac{2\rho \sigma}{(1-\rho^2)} \end{pmatrix}
+\end{align*}
+Therefore, we know that the mean is not informative, while the variance and first order autocorrelation are informative moments in the estimation process.
+
+\section*{SMM Results} 
+The attached code files (``main\_program.jl" and ``helper\_functions.jl") implement the SMM algorithm for different sets of moments, to estimate the AR(1) process. I summarize and discuss the results below: 
+
+\subsubsection*{Under-identified (Mean and Variance)} 
+
+The results for the SMM algorithm using mean and variance are summarized in the code output below. The first row displays the true moments (mean and variance) from the data generation process. The next two rows display the estimated $\rho, \sigma^2$ values using SMM, first using $W = I$ (identity matrix) and second using $W=S^{-1}$ (inverse of the variance-covariance matrix). The next six rows display the jacobian, variance covariance matrix, and standard errors for the parameter estimates. The final row displays the J-test value.\\\\
+As suggested in the previous section, the mean is not an informative moment, so this model is underidentified. Both sets of the parameter estimates are very far off from the true parameter values ($\rho_0 = 0.5, \sigma_0^2 = 1$).
+\begin{verbatim}
++------------------------------------------------------------+
+Computed moments: mean and variance
++------------------------------------------------------------+
+target = [0.0473, 1.4039]
+b_1 = [0.954, 0.3653]
+b_2 = [0.954, 0.3654]
+jacobian for b_1 = [-1.5004 -0.1568; -21.7378 -7.8417]
+var-cov for b_1 = [0.0032 -0.0091; -0.0091 0.0264]
+std. errors for b_1 = [0.0569, 0.1624]
+jacobian for b_2 = [-1.4993 -0.1568; -21.7349 -7.8421]
+var-cov for b_2 = [0.0032 -0.0091; -0.0091 0.0264]
+std. errors for b_2 = [0.0569, 0.1625]
+chi_square (J-test) = 5.4221e-6
++------------------------------------------------------------+
+\end{verbatim}
+
+\clearpage
+\subsubsection*{Just Identified (Variance and First Order Autocorrelation)}
+
+The results for the SMM algorithm using variance and first order auto-correlation are summarized in the code output below. We know from the derivations that both the variance and first order autocorrelation are informative moments for estimating the AR(1) process. As expected, the parameter estimates using both $W= I$ and $W = S^{-1}$ are both very close to the true parameter values ($\rho_0 = 0.5, \sigma_0^2 = 1$). In this case, the standard errors and J-test values are both smaller than the previous case.
+
+\begin{verbatim}
++------------------------------------------------------------+
+Computed moments: variance and first order autocorrelation
++------------------------------------------------------------+
+target = [1.1849, 0.3862]
+b_1 = [0.5164, 0.9747]
+b_2 = [0.5164, 0.9747]
+jacobian for b_1 = [-1.6603 -4.8005; -2.0891 -1.259]
+var-cov for b_1 = [0.004 0.0002; 0.0002 0.0005]
+std. errors for b_1 = [0.0636, 0.0214]
+jacobian for b_2 = [-1.6603 -4.8004; -2.0891 -1.259]
+var-cov for b_2 = [0.004 0.0002; 0.0002 0.0005]
+std. errors for b_2 = [0.0636, 0.0214]
+chi_square (J-test) = 6.873e-7
++------------------------------------------------------------+
+\end{verbatim}
+\subsubsection*{Over-identified (Mean, Variance and First Order Autocorrelation)}
+
+The results for the SMM algorithm using mean, variance and first order auto-correlation are summarized in the code output below. Again in this case, because we are using both the variance and first-order auto-correlation, we are getting quite close to the true parameter values. However, the J-test value is much larger here, because this model is over-identified.
+
+\begin{verbatim}
++------------------------------------------------------------+
+Computed moments: mean, variance and first order autocorrelation with bootstrapping
++------------------------------------------------------------+
+target = [-0.0151, 1.198, 0.522]
+b_1 = [0.4902, 0.9982]
+b_2 = [0.4782, 0.9946]
+jacobian for b_1 = [-0.0326 -0.025; -1.805 -5.2607; -2.2322 -1.2933]
+var-cov for b_1 = [0.0038 0.0001; 0.0001 0.0004]
+std. errors for b_1 = [0.0612, 0.021]
+jacobian for b_2 = [-0.0173 -0.0181; -1.6187 -5.1093; -2.0646 -1.2204]
+var-cov for b_2 = [0.0038 0.0001; 0.0001 0.0004]
+std. errors for b_2 = [0.0617, 0.0211]
+chi_square (J-test) = 11.4047614586
++------------------------------------------------------------+
+\end{verbatim}
+
+\end{document}
+

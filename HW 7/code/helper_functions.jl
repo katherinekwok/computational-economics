@@ -66,7 +66,7 @@ function simulate_data(ρ::Float64, σ::Float64, H::Int64, algo::Algorithm)
     for i_H in 1:H              # generate H different AR(1) sequences
         for i_T in 1:T-1        # each AR(1) sequence is length T (already initiated first value)
 
-            error_draw = rand(Normal(μ_0, σ^2))                      # draw error term
+            error_draw = rand(Normal(μ_0, σ^2))                        # draw error term
             sim_data[i_H, i_T+1] = ρ * sim_data[i_H, i_T] + error_draw # get next period value
         end
     end
@@ -279,8 +279,8 @@ function compute_se(algo::Algorithm, ρ::Float64, σ::Float64, S::Array{Float64,
     m_σ_nudge = get_moments(ρ, σ - nudge, H_model, algo)
 
     # calculate numerical derivative using get_moments results
-    ρ_derivative = -(m .- m_ρ_nudge)/nudge
-    σ_derivative = -(m .- m_σ_nudge)/nudge
+    ρ_derivative = (m_ρ_nudge .- m)/nudge
+    σ_derivative = (m_σ_nudge .- m)/nudge
 
     # combine derivatives
     output_deriv = [ρ_derivative σ_derivative]
@@ -306,16 +306,15 @@ end
 function solve_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms_i::Int64;
     bootstrap_opt::Bool = false)
 
-    # initialize algorithm settings
+    # initialize algorithm settings: if bootstrapping, then draw a random seed
+    # if not, we will use the same seed (defined in Algorithm struct)
     if bootstrap_opt == true
-        rand_seed = rand(1:2000000)
-        algo = Algorithm(mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i,
-                    n_moms = n_moms_i, seed_0 = rand_seed)
+        rand_seed = rand(1000000:2000000)
+        algo = Algorithm(mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i, n_moms = n_moms_i, seed_0 = rand_seed)
     else
-        algo = Algorithm(mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i,
-                    n_moms = n_moms_i)
+        algo = Algorithm(mean_opt = mean_opt_i, var_opt = var_opt_i, ac_opt = ac_opt_i, n_moms = n_moms_i)
     end
-    b_init = [algo.ρ_0, algo.σ_0]
+    b_init = [algo.ρ_0, algo.σ_0] # initial parameter values
 
     # get_moments for true data
     @unpack H_true, H_model, T, n_moms = algo
@@ -328,6 +327,7 @@ function solve_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms_i::
     # compute SE of parameters that minimize above
     b_1_mom, b_1_data = get_moments(b_1[1], b_1[2], H_model, algo; return_data = true)
     S = newey_west(algo, b_1_mom, b_1_data)
+    jacob_1, var_cov_1, se_1 = compute_se(algo, b_1[1], b_1[2], S)
 
     # minimize objective function with W = S^-1
     W_opt = inv(S)
@@ -336,7 +336,7 @@ function solve_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms_i::
     # compute SE of parameters that minimize above
     b_2_mom, b_2_data = get_moments(b_2[1], b_2[2], H_model, algo; return_data = true)
     S = newey_west(algo, b_2_mom, b_2_data)
-    jacob, var_cov, se = compute_se(algo, b_2[1], b_2[2], S)
+    jacob_2, var_cov_2, se_2 = compute_se(algo, b_2[1], b_2[2], S)
 
     # conduct J-test
     J_b_2 = obj_func(b_2[1], b_2[2], algo, targ, W)
@@ -344,11 +344,11 @@ function solve_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms_i::
 
     # print summary if not bootstrapping
     if bootstrap_opt == false
-        print_summary(algo, b_1, b_2, jacob, var_cov, se, chi_square)
+        print_summary(algo, targ, b_1, b_2, jacob_1, jacob_2, var_cov_1, var_cov_2, se_1, se_2, chi_square)
     end
 
     # return results
-    [algo, b_1, b_2, jacob, var_cov, se, chi_square]
+    [algo, targ, b_1, b_2, jacob_1, jacob_2, var_cov_1, var_cov_2, se_1, se_2, chi_square]
 
 end
 
@@ -358,7 +358,7 @@ function bootstrap_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms
 
     # initialize output from bootstrapping with first iteration
     smm_result = solve_smm(mean_opt_i, var_opt_i, ac_opt_i, n_moms_i; bootstrap_opt = true)
-    bootstrap_output = smm_result[2:size(smm_result, 1)]
+    bootstrap_output = smm_result[3:size(smm_result, 1)]
 
     # call smm solver function over number of iterations
     for i_boot in 2:n_bootstrap
@@ -367,10 +367,10 @@ function bootstrap_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms
         smm_result = solve_smm(mean_opt_i, var_opt_i, ac_opt_i, n_moms_i; bootstrap_opt = true)
 
         # add results together
-        for res_i in 2:size(smm_result, 1) - 1
-            bootstrap_output[res_i - 1] .+= smm_result[res_i]
+        for res_i in 1:size(bootstrap_output, 1) - 1
+            bootstrap_output[res_i] .+= smm_result[res_i + 2]
         end
-        bootstrap_output[6] += smm_result[7]
+        bootstrap_output[9] += smm_result[11]
 
     end
 
@@ -380,14 +380,15 @@ function bootstrap_smm(mean_opt_i::Bool, var_opt_i::Bool, ac_opt_i::Bool, n_moms
     end
 
     # summary results
-    print_summary(smm_result[1], bootstrap_output[1], bootstrap_output[2],
+    print_summary(smm_result[1], smm_result[2], bootstrap_output[1], bootstrap_output[2],
                   bootstrap_output[3], bootstrap_output[4], bootstrap_output[5],
-                  bootstrap_output[6])
+                  bootstrap_output[6], bootstrap_output[7], bootstrap_output[8],
+                  bootstrap_output[9])
 end
 
 
 # print_summary: This function prints a summary of the results
-function print_summary(algo, b_1, b_2, jacob, var_cov, se, chi_square)
+function print_summary(algo, targ, b_1, b_2, jacob_1, jacob_2, var_cov_1, var_cov_2, se_1, se_2, chi_square)
     @unpack mean_opt, var_opt, ac_opt = algo
 
     # select correct summary of option
@@ -399,14 +400,23 @@ function print_summary(algo, b_1, b_2, jacob, var_cov, se, chi_square)
         moments = "mean, variance and first order autocorrelation with bootstrapping"
     end
 
+    # print σ^2 rather than just σ
+    targ[2] = targ[2]^2
+    b_1[2] = b_1[2]^2
+    b_2[2] = b_2[2]^2
+
     @printf "+------------------------------------------------------------+\n"
     @printf " Computed moments: %s\n" moments
     @printf "+------------------------------------------------------------+\n"
+    println("              target = ", round.(targ, digits = 4))
     println("                 b_1 = ", round.(b_1, digits = 4))
     println("                 b_2 = ", round.(b_2, digits = 4))
-    println("            jacobian = ", round.(jacob, digits = 4))
-    println(" variance-covariance = ", round.(var_cov, digits = 4))
-    println("     standard errors = ", round.(se, digits = 4))
+    println("    jacobian for b_1 = ", round.(jacob_1, digits = 4))
+    println("     var-cov for b_1 = ", round.(var_cov_1, digits = 4))
+    println(" std. errors for b_1 = ", round.(se_1, digits = 4))
+    println("    jacobian for b_2 = ", round.(jacob_2, digits = 4))
+    println("     var-cov for b_2 = ", round.(var_cov_2, digits = 4))
+    println(" std. errors for b_2 = ", round.(se_2, digits = 4))
     println(" chi_square (J-test) = ", round.(chi_square, digits = 10))
     @printf "+------------------------------------------------------------+\n"
 
