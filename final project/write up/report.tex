@@ -1,0 +1,108 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin = 0.85in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{booktabs}
+\usepackage{subcaption}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\de}{\mathrm{d}}
+\newcommand{\one}{\mathds{1}}
+
+\title{ECON 899: Final Project - Replication of Arellano (2008)\\\\{\large ``Default Risk and Income Fluctuations in Emerging Economies"}}
+\author{Katherine Kwok}
+\date{November 2021}
+
+\begin{document}
+
+\maketitle
+\noindent \textbf{Overview:} For my final project, I replicated the paper titled ``Default risk and income fluctuations in emerging economics" by Cristina Arellano (2008). The paper constructs and estimates an open economy model that considers a country's likelihood to default in response to economics recessions. Using julia code, I replicate the main results in Arellano (2008). In this report, I first summarize the main research question, model, and findings in the original paper. Then, I describe the algorithm that I implement using julia code. Finally, I discuss the replicated results and wrap up.
+
+
+\subsubsection*{Summary of Arellano (2008)}
+
+The goal of this paper is to study the relationship between access to international credit and financial instability in emerging markets. In particular, Arellano focuses on how the likelihood of a country to default on loans relates to interest rates, consumption, and output. To answer her research question, the author builds on Eaton and Gersovitz (1981) to construct an open economy model with endogenous default risks. Then, the model is applied to analyze the economic crisis in Argentina in 2001. \\\\
+The model has several important and distinct features. First, Arellano sets up the asset market structure so that counter-cyclical default risks are possible. By allowing asset markets to be incomplete (i.e. including only non-contingent assets, or assets that do not depend on realization of future uncertainty), lenders are likely to offer bond contracts with higher premia to borrowers who may default in the future. As a result, the borrowers are likely to default during recessions, since it is costly to repay the debt when consumption and output are low.\\\\
+Second, the author constructs two versions of the model. The first version has exogenous shocks and the cost of defaulting only includes costs associated with being excluded from the internationl credit market. The second version is calibrated to match data moments during Argentina's 2001 recession, particularly to include additional costs to defaulting (costs to output).
+
+\clearpage
+\subsubsection*{Model and Equilibrium}
+
+The small, open economy model includes risk averse borrowers (governments in emerging economics) and risk neutral, competitive foreign lenders. In this section, I will briefly summarize the borrowers' and lenders' objectives and constraints.\\\\
+\textbf{Government's Problem}: The government's problem is to make decisions regarding bound purchase, repayment, and default to maximize household utilities. For instance, the government can pay $q(B', y)B'$ in the current period to receive $B' \ge 0$ in the next period; in this case the government is buying a bond at positive face value. Alternatively, the government can receive $-q(B', y)B'$ to deliver $B' < 0$ next period if it does not default; in this case the government is buying a bond at negative face value.\\\\
+The households are risk-averse and preferences are defined as
+\begin{align*}
+  E_0 \sum_{t=0}^{\infty} \beta^t u(c_t)
+\end{align*}
+with all the standard assumptions. Households receive an exogenous stream of income $y$ that follows Markov transition process $f(y', y)$. \\\\
+The government's budget constraint differs depending on whether the government chooses to default or repay its debt. If the government repays its debt, then the budget constraint is
+\begin{align*}
+    c = y + B - q(B', y)B'
+\end{align*}
+where $q(B', y)$ is the price of the bond, which depends on the size of the bond $B'$ and the exogenous income shocks $y$. If the government chooses to default, then they face two costs: exclusion from the foreign assets market and output costs. Then, the budget constraint is
+\begin{align*}
+    c = y^{default} = h(y) \le y
+\end{align*}
+\textbf{Foreign Lender's Problem: }Arellano assumes that lenders are informed about the borrowers' exogenous stream of income, and can borrow and lend without any limits. The lenders choose bond contracts $B'$ to maximize profits:
+\begin{align*}
+    \phi &= q(B', y)B' - \frac{(1-\delta)}{(1+r)}B'
+\end{align*}
+where prices $q(B', y)$ are taken as given and $0 \le \delta \le 1$ is the probability for the borrower to default. When the borrower purchases a bond at positive face value $B' \ge 0$, their likelihood to default is $\delta = 0$ because they will receive a positive payoff in the next period. If the borrower purchases a bond at negative face value $B' < 0$, then the default risk satisfies:
+\begin{align*}
+    q(B', y) &= \frac{1-\delta}{(1+r)}
+\end{align*}
+Therefore, $q \in [0, \frac{1}{(1+r)}]$ given $\delta \in [0, 1]$. Arellano then defines the borrower's gross interest rate as $\frac{1}{q} = 1 + r^c$.
+\clearpage
+\noindent \textbf{Timing}: In the equilibrium, Arellano assumes the following timing of actions:
+\begin{enumerate}
+    \item Government decides on repaying or defaulting debt given initial $B$ and $y$:
+    \item If government repays, it chooses $B'$ given $q(B', y)$ and budget constraint. And lenders choose $B'$ given $q$.
+    \item Consumption $c$ happens.
+\end{enumerate}
+Therefore, the Bellman equation for the government in this economy is
+\begin{align*}
+    v^o(B, y) &= \max_{\{c,d\}} \{ v^c(B, y), v^d(y) \} \text{ where } \\
+    v^c(B, y) &= \max_{B'} \{ u(y + B - q(B', y)B') + \beta \int_{y'} v^o(B', y')f(y', y) dy'\} \\
+    v^d(y) &= u(y^{default}) + \beta \int_{y'} [\theta v^o(0, y') + (1-\theta)v^d(y')]f(y', y) dy'
+\end{align*}
+\noindent \textbf{Recursive Equilibrium}: The recursive equilibrium is defined as a set of policy decisions $c$ and $B'$, sets of optimal income $A(B)$ and $D(B)$, and bond prices $q(B', y)$ so that
+\begin{enumerate}
+    \item Government policies on $c$ satisfy budget constraint: $c = y + B - q(B', y)B'$.
+    \item Government policies on $B'$ and optimal income sets $A(B)$, $D(B)$ satisfy the government's problem.
+    \item Bond prices satisfy lender's condition $q(B', y) = \frac{1-\delta}{(1+r)}$ and is a function of the government's likelihood to default.
+\end{enumerate}
+Arellano defines two sets of income $y$, one for which repaying the debt is optimal $A(B)$, and one for which defaulting on the debt is optimal $D(B) = \tilde{A}(B)$:
+\begin{align*}
+    A(B) &= \{ y \in Y: v^c(B, y) \ge v^d(y) \} \\
+    D(B) &= \{ y \in Y: v^c(B, y) < v^d(y) \}
+\end{align*}
+Moreover, $\delta(B', y)$ is related to $D(B)$. The following equation implies that if $D(B)$ is an empty set, then $\delta = 0$, and if $D(B)$ is the entire set of $Y$, then $\delta = 1$.
+\begin{align*}
+    \delta(B', y) &= \int_{D(B')} f(y', y) dy'
+\end{align*}
+\noindent \textbf{Two Versions of Model}: As mentioned earlier, Arellano defines two different versions:
+\begin{enumerate}
+    \item \textbf{Simple version: } This version has i.i.d. income shocks, and the equilibrium bond price $q(B')$ does not depend on the stream of income $y$. Also, the cost of defaulting only includes the cost of being excluded, so $h(y) = y$ and there is no possibility to re-enter the asset market after defaulting $\theta = 0$.
+    \item \textbf{Calibrated version: }
+\end{enumerate}}
+
+
+
+
+\subsubsection*{Algorithm}
+
+\subsubsection*{Replicated Results}
+
+\end{document}
