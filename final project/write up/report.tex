@@ -28,7 +28,7 @@
 \begin{document}
 
 \maketitle
-\noindent \textbf{Overview:} For my final project, I replicated the paper titled ``Default risk and income fluctuations in emerging economics" by Cristina Arellano (2008). The paper constructs and estimates an open economy model that considers a country's likelihood to default in response to economics recessions. Using julia code, I replicate the main results in Arellano (2008). In this report, I first summarize the main research question, model, and findings in the original paper. Then, I describe the algorithm that I implement using julia code. Finally, I discuss the replicated results and wrap up.
+\noindent \textbf{Overview:} For my final project, I replicated the paper titled ``Default risk and income fluctuations in emerging economics" by Cristina Arellano (2008). The paper constructs and estimates an open economy model that considers a country's likelihood to default in response to economic recessions. Using julia code, I replicate the main results in Arellano (2008). In this report, I first summarize the main research question, model, and findings in the original paper. Then, I describe the algorithm that I implement using julia code. Finally, I discuss the replicated results and wrap up.
 
 
 \subsubsection*{Summary of Arellano (2008)}
@@ -94,15 +94,28 @@ Moreover, $\delta(B', y)$ is related to $D(B)$. The following equation implies t
 \end{align*}
 \noindent \textbf{Two Versions of Model}: As mentioned earlier, Arellano defines two different versions:
 \begin{enumerate}
-    \item \textbf{Simple version: } This version has i.i.d. income shocks, and the equilibrium bond price $q(B')$ does not depend on the stream of income $y$. Also, the cost of defaulting only includes the cost of being excluded, so $h(y) = y$ and there is no possibility to re-enter the asset market after defaulting $\theta = 0$.
-    \item \textbf{Calibrated version: }
+    \item \textbf{Benchmark version: } This version has i.i.d. income shocks, and the equilibrium bond price $q(B')$ does not depend on the stream of income $y$. Also, the cost of defaulting only includes the cost of being excluded, so $h(y) = y$ and there is no possibility to re-enter the asset market after defaulting $\theta = 0$.
+    \item \textbf{Calibrated version: } This version of the model includes both output costs and exclusion costs. As a result,
+    \begin{align*}
+        h(y) &= \begin{cases} \hat{y} \text{ if } y > \hat{y}\\
+                              y  \text{ if } y \le \hat{y}
+                \end{cases}
+    \end{align*}
 \end{enumerate}}
 
 
-
-
 \subsubsection*{Algorithm}
+The algorithm for the numerical exercise to solve the calibrated model is described in Arellano (2008). I have paraphrased it below:
+\begin{enumerate}
+    \item Initialize the parameter values for $\beta, \theta, \hat{y}$ and an asset grid with 200 grid points.
+    \item Initialize $q^0(B, y) = \frac{1}{(1+r)}$ for all asset levels $B'$ and income levels $y$.
+    \item Use value function iteration to solve for the value function and policy functions for $c, B'$. Using the results, construct the optimal income sets for repayment $A(B)$ and default $D(B)$.
+    \item Update the bond price $q^1(B, y)$ so that lenders break-even. Compare $q^1$ with $q^0$: if the bond price vectors are within a tolerance value $\varepsilon$, then we have converged. If not, update bond prices and repeat value function iteration.
+    \item Use the data generated above to compute business cycle statistics. If they match with the Argentina data, stop, if not, repeat the procedure with adjusted parameter values and grid points.
+\end{enumerate}
 
 \subsubsection*{Replicated Results}
+
+For my final project, I replicated the general model results in Arellano (2008). 
 
 \end{document}
