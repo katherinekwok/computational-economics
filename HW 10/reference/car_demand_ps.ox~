@@ -1,11 +1,11 @@
-#include<oxstd.h>
-#import <maximize>
-#import <solvenle>
-#include <oxdraw.h>
-#include <oxfloat.h>
-#include <oxprob.h>
-#import <maxsqp>
-#import<blp_func_ps>
+include<oxstd.h>
+import <maximize>
+import <solvenle>
+include <oxdraw.h>
+include <oxfloat.h>
+include <oxprob.h>
+import <maxsqp>
+import<blp_func_ps>
 
 /* Global variables */
 decl n,aProductID,vYear,T,mX,vPrice,vShare,mZ,aZ,mIV;
