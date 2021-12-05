@@ -26,6 +26,7 @@ main()
   n=rows(mPanelCharact);
   vYear=unique(mPanelCharact[][find(aCharactName,"Year")]);
   T=columns(vYear);
+  //println(T);
   aProductID=new array[T];
 
   /***************************************************************************************/
@@ -50,20 +51,21 @@ main()
 		    "Year_2006","Year_2007","Year_2008","Year_2009","Year_2010","Year_2011","Year_2012","Year_2013","Year_2014","Year_2015","model_class_2",
 		    "model_class_3","model_class_4","model_class_5","cyl_2","cyl_4","cyl_6","cyl_8","drive_2","drive_3","Intercept"};
   mX=mPanelCharact[][find(aCharactName,varlist)];
-  println("/* Mean product characteristics */");
-  println("%r",aCharactName[find(aCharactName,varlist)],meanc(mX)');
+  //println("/* Mean product characteristics */");
+  //println("%r",aCharactName[find(aCharactName,varlist)],meanc(mX)');
 
   /* Load price and differentation IVs */
   decl aIVname;
   decl mDemandIV=loadmat(sprint("Car_demand_iv_spec",spec,".dta"),&aIVname);
   decl aIVlist={"i_import","diffiv_local_0","diffiv_local_1","diffiv_local_2","diffiv_local_3","diffiv_ed_0"};
   decl mExclIV=mDemandIV[][find(aIVname,aIVlist)];
-  println("/* Mean cost IV (import) and differentiation measures */");
-  println("%r",aIVname[find(aIVname,aIVlist)],meanc(mExclIV)');
+  //println("/* Mean cost IV (import) and differentiation measures */");
+  //println("%r",aIVname[find(aIVname,aIVlist)],meanc(mExclIV)');
   mIV=mPanelCharact[][find(aCharactName,exo_varlist)]~mExclIV;
 
   /* Non-linear attributes */
   mZ=mPanelCharact[][find(aCharactName,"price")];
+  //println(columns(mZ));
 
   /* Pre-compute the row IDs for each market */
   aProductID=new array[T];
@@ -82,77 +84,9 @@ main()
   for(i=0;i<T;i++)
     {
       aZ[i]=new array[columns(mZ)];
-      for(j=0;j<columns(mZ);j++) (aZ[i])[j]=mZ[aProductID[i]][j].*mEta[][j]';
+      for(j=0;j<columns(mZ);j++) (aZ[i])[j] = mZ[aProductID[i]][j].*mEta[][j]';
     }
+  println(rows((aZ[0])[0]));
 
-
-  /***************************************************************************************/
-  /* GMM Estimator */
-  /***************************************************************************************/
-  decl Q,vLParam,vXi;
-  decl vParam=new matrix[columns(mZ)][1];
-  decl vParam0=vParam;
-  decl step=0;
-
-  /* 2SLS weighting matrix */
-  A=invert(mIV'mIV);
-
-  println("/* Plot the iteration process */");
-  /* Inversion algorithm */
-  iprint=1;
-  vParam[0]=0.6;
-  /* Contraction mapping */
-  inverse(&vDelta0, vParam,0,10^(-12));
-   /* Newton */
-  vDelta0=vDelta_iia;
-  inverse(&vDelta0, vParam,1,10^(-12));
-  iprint=0;
-
-  println("/* Grid Search */");
-  decl vGrid=range(0,1,0.1);
-  decl mQgrid=new matrix[rows(vParam)][columns(vGrid)];
-  for(i=0;i<rows(vParam);i++)
-    {
-      for(j=0;j<columns(vGrid);j++)
-	{
-	  vParam[i]=vGrid[j];
-	  gmm_obj(vParam,&Q, 0,0);
-	  println("grid: ",Q~vParam');
-	  if(Q!=.NaN) {
-	    mQgrid[i][j]=-Q;
-	  }
-	  else {
-	    Q=100;
-	    vDelta0=vDelta_iia;
-	  }
-	  vParam[i]=vGrid[mincindex(mQgrid[i][]')];
-	}
-      DrawXMatrix(i,mQgrid[i][],"Obj",vGrid,"$\\lambda_p$");
-    }
-  ShowDrawWindow();
-  SaveDrawWindow(sprint("Car_demand_grid_spec",spec,".pdf"));
-
-  println("/* Two-step GMM */");
-  do{
-    vParam0=vParam;
-    if(step>0) {
-      mG=(vXi.*mIV); mG-=meanc(mG);
-      A=invert(mG'mG);
-    }
-    MaxControl(100,1);
-
-    //MaxSimplex(gmm_obj,&vParam,&Q,constant(1/10,vParam));
-    MaxControl(1000,1);
-    MaxBFGS(gmm_obj,&vParam,&Q,0,1);
-    inverse(&vDelta0, vParam,1,10^(-12));
-    vLParam=ivreg(vDelta0,mX,mIV,A);
-    vXi=vDelta0-mX*vLParam;
-    step+=1;
-    println("norm: ",norm(vParam0-vParam));
-  }while(step<2);
-
-  println("Parameter estimates: ");
-  println("%r",{"price random-coefficient paramter"},vParam);
-  println("%r",aCharactName[find(aCharactName,varlist)],vLParam);
 
 }
