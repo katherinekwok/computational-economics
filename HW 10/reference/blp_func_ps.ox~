@@ -44,6 +44,7 @@ demand(const mMu,const aShare,const aJac,const vDelta,const t,const vParam)
 	// call meanr() to get row means in sigma matrix
   decl vShat=meanr(mS);
 
+    // 
   if(aJac[0]) {
     decl mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
     aJac[0]=mD;
@@ -54,6 +55,7 @@ demand(const mMu,const aShare,const aJac,const vDelta,const t,const vParam)
 inverse(const aDelta, const vP,const eps1,const eps)
 {
   decl vShat,vDelta=vDelta0;
+  println(vShat);
   decl f=1000;
   decl mJacobian=1;
   decl rowid,t;

@@ -65,7 +65,7 @@ main()
 
   /* Non-linear attributes */
   mZ=mPanelCharact[][find(aCharactName,"price")];
-  //println(columns(mZ));
+  println(columns(mZ));
 
   /* Pre-compute the row IDs for each market */
   aProductID=new array[T];
@@ -76,7 +76,7 @@ main()
   /***************************************************************************************/
   decl mEta=loadmat("Simulated_type_distribution.dta");
   Sim=rows(mEta);
-  println("distribution of eta: ",meanc(mEta)~sqrt(varc(mEta))~quantilec(mEta,<0,1/4,1/2,3/4,1>)');
+  //println("distribution of eta: ",meanc(mEta)~sqrt(varc(mEta))~quantilec(mEta,<0,1/4,1/2,3/4,1>)');
 
   /* Pre-compute interaction between price and random-coefficient */
   /* Two dimenional arrays of JxSim matrices: T x Nb of variables */
@@ -86,7 +86,31 @@ main()
       aZ[i]=new array[columns(mZ)];
       for(j=0;j<columns(mZ);j++) (aZ[i])[j] = mZ[aProductID[i]][j].*mEta[][j]';
     }
-  println(rows((aZ[0])[0]));
+  //println(rows((aZ[0])[0]));
 
+  /***************************************************************************************/
+  /* GMM Estimator */
+  /***************************************************************************************/
+  decl Q,vLParam,vXi;
+  decl vParam=new matrix[columns(mZ)][1];
+  decl vParam0=vParam;
+  decl step=0;
 
+  /* 2SLS weighting matrix */
+  A=invert(mIV'mIV);
+
+  //println("/* Plot the iteration process */");
+  /* Inversion algorithm */
+  iprint=1;
+  vParam[0]=0.6;
+  /* Contraction mapping */
+  inverse(&vDelta0, vParam,0,10^(-12));
+  //println(vDelta0);
+   /* Newton */
+  vDelta0=vDelta_iia;
+  inverse(&vDelta0, vParam,1,10^(-12));
+  
+  iprint=0;
+
+  
 }

@@ -25,3 +25,30 @@ car_iv_path = data_path * "car_demand_iv_spec1.dta"
 
 prim = Primitives()
 dataset = process_data(prim, car_char_path, car_iv_path, type_data_path)
+
+# ---------------------------------------------------------------------------- #
+#   (1) invert demand using contraction mapping and newton
+# ---------------------------------------------------------------------------- #
+
+λ_0 = λ_p
+stp = 0
+
+λ_p = 0.6       # parameter value
+tol = 10e-12    # tolerance for convergence
+
+# fixed point method - contraction mapping for first year (max_T = 1)
+vdelta = inverse(dataset, λ_p, 0, tol, output_path, "fixed_point"; max_iter = 1000, max_T = 1)
+
+# newton method for first year (max_T = 1)
+dataset.delta_0 = dataset.delta_iia
+vdelta = inverse(dataset, λ_p, 1, tol, output_path, "newton"; max_iter = 1000, max_T = 1)
+
+# ---------------------------------------------------------------------------- #
+#   (2) grid search over non-linear parameter
+# ---------------------------------------------------------------------------- #
+
+
+
+# ---------------------------------------------------------------------------- #
+#   (3) estimate paramter using 2-step GMM
+# ---------------------------------------------------------------------------- #
