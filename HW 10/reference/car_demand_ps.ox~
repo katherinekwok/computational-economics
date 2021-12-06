@@ -109,7 +109,35 @@ main()
    /* Newton */
   vDelta0=vDelta_iia;
   inverse(&vDelta0, vParam,1,10^(-12));
+
   iprint=0;
+
+  println("/* Grid Search */");
+  
+  decl vGrid=range(0,1,0.1);
+  decl mQgrid=new matrix[rows(vParam)][columns(vGrid)];
+  
+  for(i=0;i<rows(vParam);i++)
+    {
+      for(j=0;j<columns(vGrid);j++)
+	{
+	  vParam[i]=vGrid[j];
+	  gmm_obj(vParam,&Q, 0,0);
+	  println(Q);
+	  //println("grid: ",Q~vParam');
+	  if(Q!=.NaN) {
+	    mQgrid[i][j]=-Q;
+	  }
+	  else {
+	    Q=100;
+	    vDelta0=vDelta_iia;
+	  }
+	  vParam[i]=vGrid[mincindex(mQgrid[i][]')];
+	} // end of j for loop
+      DrawXMatrix(i,mQgrid[i][],"Obj",vGrid,"$\\lambda_p$");
+    } // end of i for loop
+  //ShowDrawWindow();
+  //SaveDrawWindow(sprint("Car_demand_grid_spec",spec,".pdf"));
 
   
 }

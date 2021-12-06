@@ -46,7 +46,9 @@ mutable struct DataSets
 
 	eta::Array{Any}			# simulated type (eta)
 	eta_Z::Array{Any}		# interaction between simulated type and Z
+
 	n_eta::Int64			# number of simulated types
+	n_T::Int64				# number of years/markets
 
 end
 
@@ -140,13 +142,14 @@ function process_data(prim, car_char_path, car_iv_path, type_data_path)
 
 	# read in car characteristic, instruments, and outcome data
 	mkt_share, delta_iia, delta_0, car_price, X, Z, IV, pid = read_car_data(prim, car_char_path, car_iv_path)
+	n_T = size(pid, 1)
 
 	# read in simulated type (income) data
 	eta, eta_Z = read_type_data(type_data_path, Z, pid)
 	n_eta = size(eta, 1)
 
 	# initialize DataSets struct
-	dataset = DataSets(pid, X, IV, Z, mkt_share, delta_iia, delta_0, car_price, eta, eta_Z, n_eta)
+	dataset = DataSets(pid, X, IV, Z, mkt_share, delta_iia, delta_0, car_price, eta, eta_Z, n_eta, n_T)
 
 	return dataset
 end
@@ -159,11 +162,7 @@ end
 # value: This function computes utility (the idiosyncratic part) within a given
 #	     market for each product and consumer type pairing.
 function value(λ_p, eta_Z_t)
-
-	μ = zeros(size(eta_Z_t))
-	for i in 1:size(λ_p, 1)
-		μ .+= λ_p[i] * eta_Z_t[i]	# formula for idiosyncratic part of utility
-	end
+	μ = λ_p .* eta_Z_t
 	return exp.(μ)		# return exponentiated utility
 end
 
@@ -175,9 +174,13 @@ function demand(pid_t, μ, vdelta, n_eta; get_jacob = 0)
 	σ_hat = mean(σ, dims = 2)				   # get row means of sigma
 
 	if get_jacob == 1		# get jacobian matrix if requested
-		m = (σ * σ')/n_eta
-		m[diagind(m)] .= 0
-		jacob = Diagonal(mean((σ .* (1 .- σ)), dims = 2)) .- m
+		A = vec(mean((σ .* (1 .- σ)), dims = 2))
+		A = Diagonal(A)
+
+		B = (σ * σ')/n_eta
+		B[diagind(B)] .= 0
+
+		jacob = A .- B
 	else
 		jacob = [0]
 	end
@@ -189,23 +192,27 @@ end
 # inverse: This function inverts the demand function
 function inverse(dataset, λ_p, ε_1, tol, output_path, method; max_iter = 1000, max_T = 1)
 
-	@unpack car_pid, delta_0, mkt_share, eta_Z, n_eta = dataset
+	@printf "+--------------------------------------------------------------+\n"
+	@printf "  Inverting demand... \n"
+	@printf "+--------------------------------------------------------------+\n"
+
+
+	@unpack car_pid, delta_0, mkt_share, eta_Z, n_eta, n_T = dataset
 
 	vdelta = delta_0						# initialize parameter delta
 	norm_mat = Array{Any, 2}(undef, 0, 2)	# matrix to store norms
-	T = size(car_pid, 1)					# number of markets
-	iter = zeros(T, 1)						# iteration counter
+	iter = zeros(n_T, 1)					# iteration counter
 
 	for t in 1:max_T						# for each market
 
 		pid_t = CartesianIndex.(car_pid[t, 2])	# get product IDs for given market
 		μ = value(λ_p, eta_Z[t])                # pre-compute utility that is independent of delta
 		f = fill(1000, 1, 1)  					# initialize f value
-		norm_f = norm(f)							# initialize norm value
+		norm_f = norm(f)						# initialize norm value
 
 		while norm_f > tol && iter[t] < max_iter
 
-			if (norm_f > ε_1) # if norm is larger than 1, evaluate demand without jacobian
+			if norm_f > ε_1   # if norm is larger than 1, evaluate demand without jacobian
 				σ_hat, jacob = demand(pid_t, μ, vdelta, n_eta; get_jacob = 0)
 				f = log.(mkt_share[pid_t]) .- log.(σ_hat)
 				vdelta[pid_t] = vdelta[pid_t] + f # contraction mapping step
@@ -213,13 +220,13 @@ function inverse(dataset, λ_p, ε_1, tol, output_path, method; max_iter = 1000,
 			else			   # if norm is smaller than 1, evaluate demand with jacobian
 				σ_hat, jacob = demand(pid_t, μ, vdelta, n_eta; get_jacob = 1)
 				f = log.(mkt_share[pid_t]) .- log.(σ_hat)
-				D_f = inv(jacob./σ_hat)
+				D_f = inv((jacob./σ_hat))
 				vdelta[pid_t] = vdelta[pid_t] + D_f * f # newton step
 			end
 			iter[t] += 1
 
 			# update norm
-			norm_f = opnorm(f, 1)
+			norm_f = maximum(abs.(f))
 
 			# if inverting demand for first year (max_T = 1 and t = 1), then
 			# store the norm between log predicted and observed shares across iterations.
@@ -239,20 +246,53 @@ function inverse(dataset, λ_p, ε_1, tol, output_path, method; max_iter = 1000,
 	# if inverting demand for first year (max_T = 1 and t = 1), then plot and
 	# store the evolution of norms
 	if max_T == 1
-		plt = plot(norm_mat[2:end, 2], norm_mat[2:end, 1], label = "", xlabel = "iterations",
+		plt = plot(norm_mat[:, 2], norm_mat[:, 1], label = "", xlabel = "iterations",
 					ylabel = "norm between log predicted and observed mkt shares",
 					yguidefontsize = 8)
 	    display(plt)
 	    savefig(plt, output_path*method*"_norm_evolution.png")
 	end
 
-	return vdelta
+	dataset.delta_0 = vdelta # update delta_0
 end
 
 # ---------------------------------------------------------------------------- #
 #   (2) grid search over non-linear parameter
 # ---------------------------------------------------------------------------- #
 
+function iv_regress(Y, X, IV, W)
+	inverted = inv(real((X' * IV)* W * (IV' * X)))
+	if inverted == 0
+		IV_output = fill(NaN, size(X, 2))
+	else
+		IV_output = inverted * (X' * IV) * W * (IV' * Y)
+	end
+	return IV_output
+end
+
+
+# gmm_obj: This defines the GMM objective function
+function gmm_obj(dataset, λ_p, av_score, hessian, tol, output_path, method)
+	@unpack n_T, X, IV = dataset
+
+	# call inverse function to invert demand
+	vdelta = inverse(dataset, λ_p, 1, tol, output_path, method; max_iter = 1000, max_T = n_T)
+
+	# decompose quality variable
+	A = inv(real(IV' * IV))
+	vl_param = iv_regress(vdelta, X, IV, A)
+	Xi = vdelta - X * vl_param
+
+	# define gmm objective function
+	G = Xi .* IV
+	g = sum(G, dims = 1)
+	if sum(isnan.(vdelta)) == 1
+		func = NaN
+	else
+		func = (-g * A * g')/100
+	end
+	return func
+end
 
 # ---------------------------------------------------------------------------- #
 #   (3) estimate paramter using 2-step GMM

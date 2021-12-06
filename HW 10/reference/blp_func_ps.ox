@@ -46,6 +46,7 @@ demand(const mMu,const aShare,const aJac,const vDelta,const t,const vParam)
 
     // 
   if(aJac[0]) {
+  	//println(diag(meanr(mS.*(1-mS))));
     decl mD=diag(meanr(mS.*(1-mS)))-setdiagonal(mS*mS'/Sim,0);
     aJac[0]=mD;
     }
@@ -68,8 +69,10 @@ inverse(const aDelta, const vP,const eps1,const eps)
   parallel for(t=0;t<maxT;t++) /* Parallelize the inversion across markets. When possible use Nb processors = T (31) */
     {
       time0=timer();
+	  //println(t);
       /* Pre-compute the heterogeneity component of utility (indepedent of delta) */
       value(&mMu,vP,t);
+	  //println(mMu);
       rowid=aProductID[t];
       vIT[t]=0;
       f=1000;
@@ -86,6 +89,9 @@ inverse(const aDelta, const vP,const eps1,const eps)
 	  mJacobian=1;
 	  demand(mMu,&vShat,&mJacobian,vDelta,t,vP);
 	  f=log(vShare[rowid])-log(vShat); /* Zero function: Log difference in shares */
+	  //println((mJacobian)[0:3][0:3]);
+	  //println(vShat[0:3]);
+	  //println(sizeof(invert((mJacobian./vShat))));
 	  vDelta[rowid]=vDelta[rowid]+invert(mJacobian./vShat)*f; /* Newton step */
 	}
 	vIT[t]+=1;
@@ -116,6 +122,7 @@ gmm_obj(const vP, const adFunc, const avScore, const amHessian)
   decl eps1=1;
   decl eps=10^(-12);
   inverse(&vDelta0,vP,eps1,eps);
+  //println(vDelta0);
   /* Quality decomposition */
   decl vLParam=ivreg(vDelta0,mX,mIV,A);
   decl vXi=vDelta0-mX*vLParam;
