@@ -54,8 +54,12 @@ end
 
 # print_stats_func: This function gets the means for a given data frame and prints
 #					out the means line by line.
-function print_stats_func(dataframe, varlist, title)
-	means = round.(mean.(eachcol(dataframe)), digits = 3) # get mean for each variable
+function print_stats_func(dataframe, varlist, title; get_mean = true)
+	if get_mean == true # get mean for each variable
+		means = round.(mean.(eachcol(dataframe)), digits = 3)
+	else
+		means = dataframe
+	end
 	stats = hcat(varlist, means)						  # merge with var names
 	output_title = " " * title * ": "
 
@@ -83,7 +87,7 @@ function read_car_data(prim, car_char_path, car_iv_path; print_stats = true)
 	# get outcome variables from car characteristic data: market shares, delta, price
 	mkt_share = Array(select(dt1, "share"))
 	delta_iia = Array(select(dt1, "delta_iia"))
-	delta_0 = delta_iia
+	delta_0 = Array(select(dt1, "delta_iia"))
 	car_price = Array(select(dt1, "price"))
 
 	X = select(dt1, car_char_varlist)   # select car characteristics variables
@@ -95,8 +99,8 @@ function read_car_data(prim, car_char_path, car_iv_path; print_stats = true)
 
 	# if we want to output means of the characteristic variables
 	if print_stats == true
-		print_stats_func(X, car_char_varlist, "Average car characteristics")
-		print_stats_func(iv, car_iv_varlist, "Average car instruments: ")
+		print_stats_func(X, car_char_varlist, "Average car characteristics"; get_mean = true)
+		print_stats_func(iv, car_iv_varlist, "Average car instruments: "; get_mean = true)
 	end
 
 	# generate product IDs: treating each year as a different market, get the row indices
@@ -238,7 +242,7 @@ function inverse(dataset, λ_p, ε_1, tol, output_path, method; max_iter = 1000,
 		end
 
 		# if exceed max iter and still not within tolerance, fill with NaN
-		if opnorm(f, 1) > tol
+		if maximum(abs.(f)) > tol
 			vdelta[pid_t] = fill(NaN, size(car_pid[t, 2], 1))
 		end
 	end
@@ -260,6 +264,7 @@ end
 #   (2) grid search over non-linear parameter
 # ---------------------------------------------------------------------------- #
 
+# run iv regression
 function iv_regress(Y, X, IV, W)
 	inverted = inv(real((X' * IV)* W * (IV' * X)))
 	if inverted == 0
@@ -272,28 +277,93 @@ end
 
 
 # gmm_obj: This defines the GMM objective function
-function gmm_obj(dataset, λ_p, av_score, hessian, tol, output_path, method)
+function gmm_obj(dataset, λ_p, tol, output_path, method)
 	@unpack n_T, X, IV = dataset
 
 	# call inverse function to invert demand
-	vdelta = inverse(dataset, λ_p, 1, tol, output_path, method; max_iter = 1000, max_T = n_T)
+	inverse(dataset, λ_p, 1, tol, output_path, method; max_iter = 1000, max_T = n_T)
 
 	# decompose quality variable
 	A = inv(real(IV' * IV))
-	vl_param = iv_regress(vdelta, X, IV, A)
-	Xi = vdelta - X * vl_param
+	vl_param = iv_regress(dataset.delta_0, X, IV, A)
+	Xi = dataset.delta_0 - X * vl_param
 
 	# define gmm objective function
 	G = Xi .* IV
 	g = sum(G, dims = 1)
-	if sum(isnan.(vdelta)) == 1
+	if sum(isnan.(dataset.delta_0)) == 1 # check if return output contains NaNs
 		func = NaN
 	else
-		func = (-g * A * g')/100
+		func = (-g * A * g')/100		 # if not return output
 	end
-	return func
+
+	return func[1]
+end
+
+# grid_search: This function implements grid search to find the paramter λ
+#			   that minimizes the objective function.
+function grid_search(dataset, output_path, tol, λ_p_input)
+
+	@printf "+--------------------------------------------------------------+\n"
+	@printf "  Implementing grid search... \n"
+	@printf "+--------------------------------------------------------------+\n"
+
+	λ_p = [λ_p_input]
+	p_grid = range(0, step = 0.1, stop = 1)
+	q_grid = zeros(size(λ_p, 1), size(p_grid, 1))
+
+	for i in 1:size(λ_p, 1)
+	    for j in 1:size(p_grid, 1)
+	        λ_p[i] = p_grid[j]
+	        q = gmm_obj(dataset, λ_p, tol, output_path, "newton")
+	        if isnan(q) == false
+	            q_grid[i, j] = -q
+	            println("  GMM objective function: ", q_grid[i, j])
+	        else
+	            q = 100
+	            dataset.delta_0 = dataset.delta_iia
+	        end
+	        min_val, min_ind = findmin(q_grid[i, :])
+	        λ_p[i] = p_grid[min_ind]
+	    end
+	    plt = plot(p_grid, q_grid[i, :], xlabel = "paramter grid",
+	            ylabel = "GMM objective function", yguidefontsize = 8,
+	            label = "")
+	    display(plt)
+	    savefig(plt, output_path*"gmm_obj_func.png")
+	end
+	return λ_p
 end
 
 # ---------------------------------------------------------------------------- #
 #   (3) estimate paramter using 2-step GMM
 # ---------------------------------------------------------------------------- #
+
+function two_step_gmm(dataset, stp, λ_optimal, Xi, tol, output_path)
+
+	@printf "+--------------------------------------------------------------+\n"
+	@printf "  Implementing 2 step GMM... in step %d\n" stp
+	@printf "+--------------------------------------------------------------+\n"
+
+	@unpack n_T, IV, X = dataset
+
+	if stp > 1	# get second stage weighting matrix
+		g_mat = Xi .* IV
+		g_mat = g_mat .- mean(g_mat, dims = 1)
+		A = inv(g_mat' * g_mat)
+	end
+
+	# call optimizer
+	bfgs = @time optimize(λ -> -gmm_obj(dataset, λ, tol, output_path, "newton"), λ_optimal, BFGS(); inplace = false)
+	λ_bfgs = Optim.minimizer(bfgs)
+
+	# invert demand
+	inverse(dataset, λ_bfgs, 1, tol, output_path, "newton"; max_iter = 1000, max_T = n_T)
+
+	# decompose quality variable
+	A = inv(real(IV' * IV))
+	vl_param = iv_regress(dataset.delta_0, X, IV, A)
+	Xi = dataset.delta_0 - X * vl_param
+
+	return vl_param, Xi, λ_bfgs
+end

@@ -122,6 +122,7 @@ gmm_obj(const vP, const adFunc, const avScore, const amHessian)
   decl eps1=1;
   decl eps=10^(-12);
   inverse(&vDelta0,vP,eps1,eps);
+  println(vDelta0[0:4]);
   //println(vDelta0);
   /* Quality decomposition */
   decl vLParam=ivreg(vDelta0,mX,mIV,A);

@@ -37,35 +37,25 @@ inverse(dataset, λ_p, 0, tol, output_path, "fixed_point"; max_iter = 1000, max_
 
 # newton method for first year (max_T = 1)
 dataset.delta_0 = dataset.delta_iia
-vdelta = inverse(dataset, λ_p, 1, tol, output_path, "newton"; max_iter = 1000, max_T = 1)
+inverse(dataset, λ_p, 1, tol, output_path, "newton"; max_iter = 1000, max_T = 1)
 
 # ---------------------------------------------------------------------------- #
 #   (2) grid search over non-linear parameter
 # ---------------------------------------------------------------------------- #
 
-
-λ_p = [0.6]
-p_grid = range(0, step = 0.1, stop = 1)
-q_grid = zeros(size(λ_p, 1), size(p_grid, 1))
-
-for i in 1:size(λ_p, 1)
-    for j in 1:size(p_grid, 1)
-        λ_p[i] = p_grid[j]
-        q = gmm_obj(dataset, λ_p, 0, 0, tol, output_path, "newton")
-
-        if isnan.(q) != 1
-            q_grid[i, j] = -q[1]
-        else
-            q = 100
-            dataset.delta_0 = dataset.delta_iia
-        end
-        min_val, min_ind = findmin(q_grid[i, :])
-        λ_p[i] = p_grid[min_ind]
-    end
-    plt = plot(p_grid, q_grid[i, :])
-    display(plt)
-end
+λ_optimal = grid_search(dataset, output_path, tol, λ_p)
 
 # ---------------------------------------------------------------------------- #
 #   (3) estimate paramter using 2-step GMM
 # ---------------------------------------------------------------------------- #
+
+Xi = zeros(size(dataset.X, 1)) # initialize Xi for GMM
+
+vl_param, Xi_1, λ_gmm = two_step_gmm(dataset, 1, λ_optimal, Xi, tol, output_path)
+vl_param, Xi_2, λ_gmm = two_step_gmm(dataset, 2, λ_gmm, Xi_1, tol, output_path)
+
+@printf "+--------------------------------------------------------------+\n"
+@printf " Estimated paramter from two-step GMM = %.4f \n" λ_gmm[1]
+@printf "+--------------------------------------------------------------+\n"
+
+print_stats_func(vl_param, prim.car_char_varlist, "Estimated car characteristics"; get_mean = false)
