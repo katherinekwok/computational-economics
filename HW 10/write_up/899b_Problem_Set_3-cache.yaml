@@ -1,0 +1,2030 @@
+version: 0.12.2
+filePath: 899b_Problem_Set_3.tex
+options:
+  $BIBINPUTS:
+    - $ROOTDIR
+    - $ROOTDIR/$OUTDIR
+    - ''
+  $TEXINPUTS:
+    - $ROOTDIR
+    - $ROOTDIR/$OUTDIR
+    - ''
+  bibtexEngine: bibtex
+  cleanPatterns:
+    - '**/*.aux'
+    - '**/*.aux.bak'
+    - '**/*.bbl'
+    - '**/*.bcf'
+    - '**/*.blg'
+    - '**/*.dvi'
+    - '**/*.fdb_latexmk'
+    - '**/*.fls'
+    - '**/*.idx'
+    - '**/*.idx.bak'
+    - '**/*.ilg'
+    - '**/*.ind'
+    - '**/*.lof'
+    - '**/*.log'
+    - '**/*.lol'
+    - '**/*.lot'
+    - '**/*.nav'
+    - '**/*.out'
+    - '**/*.pdf'
+    - '**/*.ps'
+    - '**/*.snm'
+    - '**/*.synctex.gz'
+    - '**/*.toc'
+    - '/**/_minted-${JOB}'
+    - '/${OUTDIR}/sage-plots-for-${JOB}.tex'
+    - /missfont.log
+    - /texput.log
+    - /texput.aux
+  dviToPdfEngine: xdvipdfmx
+  engine: pdflatex
+  epstopdfBoundingBox: default
+  epstopdfOutputPath: $DIR_0/$NAME_0.pdf
+  indexAutomaticRanges: true
+  indexEngine: makeindex
+  indexOrdering: word
+  indexSorting: default
+  knitrConcordance: true
+  knitrOutputPath: $JOB.tex
+  lhs2texStyle: poly
+  literateAgdaEngine: agda
+  literateHaskellEngine: lhs2TeX
+  loadCache: true
+  loadUserOptions: true
+  outputFormat: pdf
+  phaseCycles: 20
+  pweaveCacheDirectory: pweave-cache-for-$JOB
+  pweaveFigureDirectory: pweave-figures-for-$JOB
+  pweaveKernel: python3
+  pweaveOutputFormat: tex
+  pweaveOutputPath: $JOB.tex
+  saveCache: true
+  severity: info
+  validateCache: true
+  synctex: true
+  copyTargetsToRoot: true
+  outputDirectory: ''
+  intermediatePostScript: false
+  $PATH: '/usr/texbin:/Library/TeX/texbin:$PATH'
+files:
+  dicy-instance.yaml-ParsedYAML:
+    timeStamp: 2021-12-07T02:58:46.827Z
+    jobNames: []
+    value:
+      severity: info
+    type: ParsedYAML
+  dicy.yaml-ParsedYAML:
+    jobNames: []
+    type: ParsedYAML
+  899b_Problem_Set_3.yaml-ParsedYAML:
+    jobNames: []
+    type: ParsedYAML
+  899b_Problem_Set_3.tex-ParsedLaTeXMagic:
+    timeStamp: 2021-12-07T02:49:05.495Z
+    jobNames: []
+    value: {}
+    type: ParsedLaTeXMagic
+  /Users/s140692/Library/Application Support/dicy/config.yaml-ParsedYAML:
+    timeStamp: 2021-12-07T02:49:05.492Z
+    jobNames: []
+    value:
+      synctex: true
+      engine: pdflatex
+      severity: warning
+      copyTargetsToRoot: true
+      outputDirectory: ''
+      outputFormat: pdf
+      cleanPatterns:
+        - '**/*.aux'
+        - '**/*.aux.bak'
+        - '**/*.bbl'
+        - '**/*.bcf'
+        - '**/*.blg'
+        - '**/*.dvi'
+        - '**/*.fdb_latexmk'
+        - '**/*.fls'
+        - '**/*.idx'
+        - '**/*.idx.bak'
+        - '**/*.ilg'
+        - '**/*.ind'
+        - '**/*.lof'
+        - '**/*.log'
+        - '**/*.lol'
+        - '**/*.lot'
+        - '**/*.nav'
+        - '**/*.out'
+        - '**/*.pdf'
+        - '**/*.ps'
+        - '**/*.snm'
+        - '**/*.synctex.gz'
+        - '**/*.toc'
+        - '/**/_minted-${JOB}'
+        - '/${OUTDIR}/sage-plots-for-${JOB}.tex'
+        - /missfont.log
+        - /texput.log
+        - /texput.aux
+      intermediatePostScript: false
+      $PATH: '/usr/texbin:/Library/TeX/texbin:$PATH'
+    type: ParsedYAML
+  899b_Problem_Set_3.tex:
+    timeStamp: 2021-12-07T03:17:47.506Z
+    jobNames: []
+    hash: xQTkdlRmZ68owk3CqQY8p9GtovOeLTmODJ18Nj9madM=
+    type: LaTeX
+    subType: article
+  /Users/s140692/Library/Application Support/dicy/config.yaml:
+    timeStamp: 2021-12-07T02:48:00.981Z
+    jobNames: []
+    type: YAML
+  x.y-Nil:
+    jobNames: []
+    type: Nil
+  899b_Problem_Set_3.fls-ParsedFileListing:
+    timeStamp: 2021-12-07T03:12:51.339Z
+    jobNames: []
+    value:
+      messages: []
+      inputs:
+        - /usr/local/texlive/2019/texmf-dist/fonts/map/fontname/texfonts.map
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmex10.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi10.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi12.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi6.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi8.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr10.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr12.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr17.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr6.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr8.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm
+        - /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy8.tfm
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+        - >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb
+        - /usr/local/texlive/2019/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/ifxetex/ifxetex.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/etexcmds.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifvtex.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/infwarerr.sty
+        - >-
+          /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amscls/amsthm.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amssymb.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsa.fd
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsb.fd
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsbsy.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsgen.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsopn.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amstext.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/base/article.cls
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/base/inputenc.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/base/size12.clo
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/booktabs/booktabs.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption3.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/caption/subcaption.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/doublestroke/dsfont.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/enumitem/enumitem.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/geometry/geometry.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-def/pdftex.def
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphics.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphicx.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/keyval.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/lscape.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/trig.sty
+        - >-
+          /usr/local/texlive/2019/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+        - >-
+          /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/grfext.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/kvoptions.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/pdflscape.sty
+        - /usr/local/texlive/2019/texmf-dist/tex/latex/placeins/placeins.sty
+        - /usr/local/texlive/2019/texmf-dist/web2c/texmf.cnf
+        - /usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map
+        - /usr/local/texlive/2019/texmf-var/web2c/pdftex/pdflatex.fmt
+        - /usr/local/texlive/2019/texmf.cnf
+        - 899b_Problem_Set_3.aux
+        - 899b_Problem_Set_3.tex
+        - fixed_point_norm_evolution.png
+        - gmm_obj_func.png
+        - newton_norm_evolution.png
+        - var_estimates.tex
+      outputs:
+        - 899b_Problem_Set_3.aux
+        - 899b_Problem_Set_3.log
+        - 899b_Problem_Set_3.pdf
+      calls: []
+    type: ParsedFileListing
+  899b_Problem_Set_3.log-ParsedLaTeXLog:
+    timeStamp: 2021-12-07T03:17:48.362Z
+    jobNames: []
+    value:
+      messages:
+        - name: pdfTeX
+          severity: info
+          text: inputenc 2018/08/11 v1.3c Input encoding file
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/base/inputenc.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 28
+              end: 28
+        - name: pdfTeX
+          severity: info
+          text: geometry 2018/04/16 v5.8 Page Geometry
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/geometry/geometry.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 32
+              end: 32
+        - name: pdfTeX
+          severity: info
+          text: keyval 2014/10/28 v1.15 key=value parser (DPC)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/keyval.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 34
+              end: 34
+        - name: pdfTeX
+          severity: info
+          text: ifpdf 2018/09/07 v3.3 Provides the ifpdf switch
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 37
+              end: 37
+        - name: pdfTeX
+          severity: info
+          text: ifvtex 2016/05/16 v1.6 Detect VTeX and its facilities (HO)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifvtex.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 39
+              end: 39
+        - severity: info
+          name: pdfTeX
+          category: Package ifvtex
+          text: VTeX not detected.
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifvtex.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 40
+              end: 40
+        - name: pdfTeX
+          severity: info
+          text: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/generic/ifxetex/ifxetex.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 42
+              end: 42
+        - name: pdfTeX
+          severity: info
+          text: amsmath 2018/12/01 v2.17b AMS math features
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 57
+              end: 57
+        - name: pdfTeX
+          severity: info
+          text: amstext 2000/06/29 v2.01 AMS text
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amstext.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 61
+              end: 61
+        - name: pdfTeX
+          severity: info
+          text: amsbsy 1999/11/29 v1.2d Bold Symbols
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsbsy.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 67
+              end: 67
+        - name: pdfTeX
+          severity: info
+          text: amsopn 2016/03/08 v2.02 operator names
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsopn.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 70
+              end: 70
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: Redefining \frac
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 223
+              end: 223
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 73
+              end: 73
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: Redefining \overline
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 385
+              end: 385
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 76
+              end: 76
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: Redefining \ldots
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 482
+              end: 482
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 79
+              end: 79
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: Redefining \dots
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 485
+              end: 485
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 80
+              end: 80
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: Redefining \cdots
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 606
+              end: 606
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 81
+              end: 81
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Redeclaring font encoding OML
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 729
+              end: 729
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 85
+              end: 85
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Redeclaring font encoding OMS
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 730
+              end: 730
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 86
+              end: 86
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: 'Redefining \['
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 2844
+              end: 2844
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 107
+              end: 107
+        - severity: info
+          name: pdfTeX
+          category: LaTeX
+          text: 'Redefining \]'
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+            range:
+              start: 2845
+              end: 2845
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 108
+              end: 108
+        - name: pdfTeX
+          severity: info
+          text: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 110
+              end: 110
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: >-
+            Overwriting math alphabet `\mathfrak' in version `bold' U/euf/m/n
+            --> U/euf/b/n.
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+            range:
+              start: 106
+              end: 106
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 113
+              end: 114
+        - name: pdfTeX
+          severity: info
+          text: amssymb 2013/01/14 v3.01 AMS font symbols
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amssymb.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 116
+              end: 116
+        - name: pdfTeX
+          severity: info
+          text: amsthm 2017/10/31 v2.20.4
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/amscls/amsthm.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 118
+              end: 118
+        - name: pdfTeX
+          severity: info
+          text: 'graphicx 2017/06/01 v1.1a Enhanced LaTeX Graphics (DPC,SPQR)'
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphicx.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 129
+              end: 129
+        - name: pdfTeX
+          severity: info
+          text: 'graphics 2017/06/25 v1.2c Standard LaTeX Graphics (DPC,SPQR)'
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphics.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 131
+              end: 131
+        - name: pdfTeX
+          severity: info
+          text: trig 2016/01/03 v1.10 sin cos tan (DPC)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/trig.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 133
+              end: 133
+        - severity: info
+          name: pdfTeX
+          category: Package graphics
+          text: 'Driver file: pdftex.def'
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphics.sty
+            range:
+              start: 99
+              end: 99
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 137
+              end: 137
+        - name: pdfTeX
+          severity: info
+          text: placeins 2005/04/18 v 2.2
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/placeins/placeins.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 144
+              end: 144
+        - name: pdfTeX
+          severity: info
+          text: enumitem 2019/02/04 v3.8 Customized lists
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/enumitem/enumitem.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 146
+              end: 146
+        - name: pdfTeX
+          severity: info
+          text: dsfont 1995/08/01 v0.1 Double stroke roman fonts
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/doublestroke/dsfont.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 154
+              end: 154
+        - name: pdfTeX
+          severity: info
+          text: booktabs 2016/04/27 v1.618033 publication quality tables
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/booktabs/booktabs.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 156
+              end: 156
+        - name: pdfTeX
+          severity: info
+          text: subcaption 2018/05/01 v1.1-162 Sub-captions (AR)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/caption/subcaption.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 175
+              end: 175
+        - name: pdfTeX
+          severity: info
+          text: caption 2018/10/06 v3.3-154 Customizing captions (AR)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 177
+              end: 177
+        - name: pdfTeX
+          severity: info
+          text: caption3 2018/09/12 v1.8c caption3 kernel (AR)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption3.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 179
+              end: 179
+        - severity: info
+          name: pdfTeX
+          category: Package caption3
+          text: 'TeX engine: e-TeX'
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption3.sty
+            range:
+              start: 64
+              end: 64
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 180
+              end: 180
+        - name: pdfTeX
+          severity: info
+          text: pdflscape 2016/05/14 v0.11 Display of landscape pages in PDF (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/pdflscape.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 195
+              end: 195
+        - name: pdfTeX
+          severity: info
+          text: lscape 2000/10/22 v3.01 Landscape Pages (DPC)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/lscape.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 197
+              end: 197
+        - severity: info
+          name: pdfTeX
+          category: Package pdflscape
+          text: 'Auto-detected driver: pdftex'
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/pdflscape.sty
+            range:
+              start: 81
+              end: 81
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 199
+              end: 199
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for OML/cmm/m/it ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 205
+              end: 206
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for T1/cmr/m/n ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 207
+              end: 208
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for OT1/cmr/m/n ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 209
+              end: 210
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for OMS/cmsy/m/n ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 211
+              end: 212
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for OMX/cmex/m/n ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 213
+              end: 214
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Checking defaults for U/cmr/m/n ... okay
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 29
+              end: 29
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 215
+              end: 216
+        - name: pdfTeX
+          severity: info
+          text: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 265
+              end: 265
+        - name: pdfTeX
+          severity: info
+          text: infwarerr 2016/05/16 v1.4 Providing info/warning/error messages (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/infwarerr.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 267
+              end: 267
+        - name: pdfTeX
+          severity: info
+          text: grfext 2016/05/16 v1.2 Manage graphics extensions (HO)
+          source:
+            file: /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/grfext.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 269
+              end: 269
+        - name: pdfTeX
+          severity: info
+          text: kvdefinekeys 2016/05/16 v1.4 Define keys (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 271
+              end: 271
+        - name: pdfTeX
+          severity: info
+          text: ltxcmds 2016/05/16 v1.23 LaTeX kernel commands for general use (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 273
+              end: 273
+        - name: pdfTeX
+          severity: info
+          text: kvoptions 2016/05/16 v3.12 Key value format for package options (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/kvoptions.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 275
+              end: 275
+        - name: pdfTeX
+          severity: info
+          text: kvsetkeys 2016/05/16 v1.17 Key value parser (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 277
+              end: 277
+        - name: pdfTeX
+          severity: info
+          text: etexcmds 2016/05/16 v1.6 Avoid name clashes with e-TeX commands (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/etexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 279
+              end: 279
+        - name: pdfTeX
+          severity: info
+          text: ifluatex 2016/05/16 v1.4 Provides the ifluatex switch (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 281
+              end: 281
+        - severity: info
+          name: pdfTeX
+          category: Package ifluatex
+          text: LuaTeX not detected.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 282
+              end: 282
+        - name: pdfTeX
+          severity: info
+          text: >-
+            pdftexcmds 2018/09/10 v0.29 Utility functions of pdfTeX for LuaTeX
+            (HO)
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 284
+              end: 285
+        - severity: info
+          name: pdfTeX
+          category: Package pdftexcmds
+          text: LuaTeX not detected.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 286
+              end: 286
+        - severity: info
+          name: pdfTeX
+          category: Package pdftexcmds
+          text: \pdf@primitive is available.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 287
+              end: 287
+        - severity: info
+          name: pdfTeX
+          category: Package pdftexcmds
+          text: \pdf@ifprimitive is available.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 288
+              end: 288
+        - severity: info
+          name: pdfTeX
+          category: Package pdftexcmds
+          text: \pdfdraftmode found.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 289
+              end: 289
+        - severity: info
+          name: pdfTeX
+          category: Package epstopdf-base
+          text: Redefining graphics rule for `.eps'
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+            range:
+              start: 438
+              end: 438
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 291
+              end: 292
+        - severity: info
+          name: pdfTeX
+          category: Package grfext
+          text: >-
+            Graphics extension search list:
+            [.pdf,.png,.jpg,.mps,.jpeg,.jbig2,.jb2,.PDF,.PNG,.JPG,.JPEG,.JBIG2,.JB2,.eps]
+            \AppendGraphicsExtensions.
+          source:
+            file: >-
+              /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+            range:
+              start: 456
+              end: 456
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 293
+              end: 296
+        - severity: info
+          name: pdfTeX
+          category: Package caption
+          text: Begin \AtBeginDocument code.
+          source:
+            file: 899b_Problem_Set_3.tex
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 301
+              end: 301
+        - severity: info
+          name: pdfTeX
+          category: Package caption
+          text: End \AtBeginDocument code.
+          source:
+            file: 899b_Problem_Set_3.tex
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 302
+              end: 302
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Try loading font information for U+msa
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 31
+              end: 31
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 303
+              end: 303
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Try loading font information for U+msb
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 31
+              end: 31
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 307
+              end: 307
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: Try loading font information for OMS+cmr
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 31
+              end: 31
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 311
+              end: 311
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: >-
+            Font shape `OMS/cmr/m/n' in size <10> not available Font shape
+            `OMS/cmsy/m/n' tried instead.
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 31
+              end: 31
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 315
+              end: 316
+        - severity: info
+          name: pdfTeX
+          category: LaTeX Font
+          text: >-
+            Font shape `OMS/cmr/m/n' in size <7> not available Font shape
+            `OMS/cmsy/m/n' tried instead.
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 31
+              end: 31
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 317
+              end: 318
+        - severity: info
+          name: pdfTeX
+          category: Package pdftex.def
+          text: >-
+            fixed_point_norm_evolution.png used Requested size: 422.05772pt x
+            281.38503pt.
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 48
+              end: 48
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 347
+              end: 349
+        - severity: info
+          name: pdfTeX
+          category: Package pdftex.def
+          text: >-
+            newton_norm_evolution.png used Requested size: 422.05772pt x
+            281.38503pt.
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 55
+              end: 55
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 353
+              end: 354
+        - severity: info
+          name: pdfTeX
+          category: Package pdftex.def
+          text: 'gmm_obj_func.png used Requested size: 422.05772pt x 281.38503pt.'
+          source:
+            file: 899b_Problem_Set_3.tex
+            range:
+              start: 62
+              end: 62
+          log:
+            file: 899b_Problem_Set_3.log
+            range:
+              start: 358
+              end: 359
+      inputs: []
+      outputs:
+        - 899b_Problem_Set_3.pdf
+      calls: []
+    type: ParsedLaTeXLog
+  899b_Problem_Set_3.aux:
+    timeStamp: 2021-12-07T03:17:48.278Z
+    jobNames: []
+    hash: w+V9LCh0ARqgz2B7VXi7QsR7hTv6WRA9vxEFqzUHGjU=
+    type: LaTeXAuxilary
+  899b_Problem_Set_3.fls:
+    timeStamp: 2021-12-07T03:17:48.306Z
+    jobNames: []
+    hash: 4z/i8RLlUUj4cS2UxTq7GqbXl1ctzx2ZeRPrAjG8nFY=
+    type: FileListing
+  899b_Problem_Set_3.log:
+    timeStamp: 2021-12-07T03:17:48.330Z
+    jobNames: []
+    hash: vyAc9gFnPbtWeDUz9KirqnD2We0a738dwtgYWUX3q78=
+    type: LaTeXLog
+    subType: pdfTeX
+  899b_Problem_Set_3.pdf:
+    timeStamp: 2021-12-07T03:17:48.326Z
+    jobNames: []
+    hash: r5TdInvW7e+nUnejpXNUo/WttFjMs8pHEpNYk8P9Vdw=
+    type: PortableDocumentFormat
+  899b_Problem_Set_3.aux-ParsedLaTeXAuxilary:
+    timeStamp: 2021-12-07T03:12:51.329Z
+    jobNames: []
+    value:
+      commands:
+        - relax
+        - '@writefile'
+        - providecommand
+        - newlabel
+        - '@writefile'
+        - newlabel
+        - '@writefile'
+        - newlabel
+        - '@writefile'
+        - newlabel
+    type: ParsedLaTeXAuxilary
+  /usr/local/texlive/2019/texmf-dist/fonts/map/fontname/texfonts.map:
+    timeStamp: 2017-11-27T23:19:31.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm:
+    timeStamp: 2009-06-30T17:13:40.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmex10.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi12.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi6.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi8.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr12.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr17.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr6.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr8.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy8.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb:
+    timeStamp: 2009-07-20T23:47:11.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/context/base/mkii/supp-pdf.mkii:
+    timeStamp: 2016-04-22T22:14:39.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/generic/ifxetex/ifxetex.sty:
+    timeStamp: 2010-09-12T22:41:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/etexcmds.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifluatex.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifpdf.sty:
+    timeStamp: 2018-09-08T21:44:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifvtex.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/infwarerr.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ltxcmds.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty:
+    timeStamp: 2018-09-11T21:39:27.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amscls/amsthm.sty:
+    timeStamp: 2017-12-19T22:32:49.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amsfonts.sty:
+    timeStamp: 2013-02-01T23:58:28.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amssymb.sty:
+    timeStamp: 2013-02-01T23:58:28.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsa.fd:
+    timeStamp: 2013-02-01T23:58:28.000Z
+    jobNames: []
+    type: FontDescription
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsb.fd:
+    timeStamp: 2013-02-01T23:58:28.000Z
+    jobNames: []
+    type: FontDescription
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsbsy.sty:
+    timeStamp: 2018-04-07T20:51:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsgen.sty:
+    timeStamp: 2018-04-07T20:51:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty:
+    timeStamp: 2018-12-11T22:32:49.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsopn.sty:
+    timeStamp: 2018-04-07T20:51:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amstext.sty:
+    timeStamp: 2018-04-07T20:51:30.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/base/article.cls:
+    timeStamp: 2018-12-11T22:32:49.000Z
+    jobNames: []
+    type: LaTeXClass
+  /usr/local/texlive/2019/texmf-dist/tex/latex/base/inputenc.sty:
+    timeStamp: 2018-12-11T22:32:49.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd:
+    timeStamp: 2018-04-06T21:33:45.000Z
+    jobNames: []
+    type: FontDescription
+  /usr/local/texlive/2019/texmf-dist/tex/latex/base/size12.clo:
+    timeStamp: 2018-12-11T22:32:49.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/latex/booktabs/booktabs.sty:
+    timeStamp: 2016-05-02T23:54:35.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption.sty:
+    timeStamp: 2018-10-08T20:56:18.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption3.sty:
+    timeStamp: 2018-10-03T22:44:10.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/caption/subcaption.sty:
+    timeStamp: 2018-06-09T20:58:49.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/doublestroke/dsfont.sty:
+    timeStamp: 2006-01-12T23:54:22.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/enumitem/enumitem.sty:
+    timeStamp: 2019-02-04T21:36:54.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/geometry/geometry.sty:
+    timeStamp: 2018-05-07T21:15:44.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-cfg/graphics.cfg:
+    timeStamp: 2016-06-14T22:41:10.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-def/pdftex.def:
+    timeStamp: 2018-01-09T22:36:08.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphics.sty:
+    timeStamp: 2018-04-07T20:53:05.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphicx.sty:
+    timeStamp: 2018-04-07T20:53:05.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/keyval.sty:
+    timeStamp: 2018-04-07T20:53:05.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/lscape.sty:
+    timeStamp: 2018-04-07T20:53:05.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/trig.sty:
+    timeStamp: 2018-04-07T20:53:05.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg:
+    timeStamp: 2010-07-13T16:52:39.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/grfext.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/kvoptions.sty:
+    timeStamp: 2016-05-18T22:01:00.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/pdflscape.sty:
+    timeStamp: 2016-05-15T21:39:17.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/tex/latex/placeins/placeins.sty:
+    timeStamp: 2006-01-13T00:02:45.000Z
+    jobNames: []
+    type: LaTeXStyle
+  /usr/local/texlive/2019/texmf-dist/web2c/texmf.cnf:
+    timeStamp: 2019-05-05T21:35:14.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map:
+    timeStamp: 2019-05-08T19:01:04.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-var/web2c/pdftex/pdflatex.fmt:
+    timeStamp: 2019-05-08T19:01:26.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf.cnf:
+    timeStamp: 2019-05-08T18:52:26.000Z
+    jobNames: []
+  choice_probabilities.aux:
+    timeStamp: 2021-12-07T02:51:55.627Z
+    jobNames: []
+    hash: npJH+0jsHTSj5u0QPNFmO8y55F1PBSqmd8aopR9C1dA=
+    type: LaTeXAuxilary
+  choice_probabilities_observed_choice.aux:
+    timeStamp: 2021-12-07T02:51:55.626Z
+    jobNames: []
+    hash: 3hxPNv7u7ISWnfGjXKgmhIqnJ22mYP9Z+ZsUE4OfEwc=
+    type: LaTeXAuxilary
+  probit_coefficients.aux:
+    timeStamp: 2021-12-07T02:51:55.630Z
+    jobNames: []
+    hash: vHQUUVyuoGCqRowaIW361QDa0jqO6DtwAeErfa32paA=
+    type: LaTeXAuxilary
+  choice_probabilities.aux-ParsedLaTeXAuxilary:
+    timeStamp: 2021-12-07T02:49:07.190Z
+    jobNames: []
+    value:
+      commands:
+        - relax
+        - '@setckpt'
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+    type: ParsedLaTeXAuxilary
+  choice_probabilities_observed_choice.aux-ParsedLaTeXAuxilary:
+    timeStamp: 2021-12-07T02:49:07.191Z
+    jobNames: []
+    value:
+      commands:
+        - relax
+        - '@setckpt'
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+    type: ParsedLaTeXAuxilary
+  probit_coefficients.aux-ParsedLaTeXAuxilary:
+    timeStamp: 2021-12-07T02:49:07.194Z
+    jobNames: []
+    value:
+      commands:
+        - relax
+        - '@setckpt'
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+        - setcounter
+    type: ParsedLaTeXAuxilary
+  899b_Problem_Set_3.synctex.gz:
+    timeStamp: 2021-12-07T03:17:48.330Z
+    jobNames: []
+    hash: NTfSfPS5pLBrGJ0mfKh8HQwhYVGT+gLBmJuVYbAU12k=
+    type: SyncTeX
+  fixed_point_norm_evolution.png:
+    timeStamp: 2021-12-07T03:00:53.119Z
+    jobNames: []
+    hash: GfOM6lrrcv0qHcuC+958CGXg6hXVYHqJx/LKXW1NJwg=
+  newton_norm_evolution.png:
+    timeStamp: 2021-12-07T03:00:53.168Z
+    jobNames: []
+    hash: R18WfchvoHZUlVeB6L2X3UzsFp8M3GtcFPw0JV0ekSk=
+  gmm_obj_func.png:
+    timeStamp: 2021-12-07T03:00:53.124Z
+    jobNames: []
+    hash: 8H9/T9lgsyauuus8ZsOrsaciFgumQyh4RQZtgZmuYdU=
+  var_estimates.tex:
+    timeStamp: 2021-12-07T03:16:13.648Z
+    jobNames: []
+    hash: dCpVsxSmXAMeMr5gbuaxYB20SErbnv/invh3XXzOMhA=
+    type: TeX
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi10.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+  /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr10.tfm:
+    timeStamp: 2006-01-09T01:04:13.000Z
+    jobNames: []
+rules:
+  - name: ApplyOptions
+    command: load
+    phase: initialize
+    parameters: []
+    inputs:
+      - file: dicy.yaml-ParsedYAML
+        type: default
+      - file: 899b_Problem_Set_3.yaml-ParsedYAML
+        type: default
+      - file: 899b_Problem_Set_3.tex-ParsedLaTeXMagic
+        type: default
+      - file: dicy-instance.yaml-ParsedYAML
+        type: default
+      - file: /Users/s140692/Library/Application Support/dicy/config.yaml-ParsedYAML
+        type: default
+    outputs: []
+  - name: LoadAndValidateCache
+    command: load
+    phase: initialize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: Migrate
+    command: load
+    phase: initialize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: ApplyOptions
+    command: load
+    phase: execute
+    parameters: []
+    inputs:
+      - file: dicy.yaml-ParsedYAML
+        type: default
+      - file: 899b_Problem_Set_3.yaml-ParsedYAML
+        type: default
+      - file: 899b_Problem_Set_3.tex-ParsedLaTeXMagic
+        type: default
+      - file: dicy-instance.yaml-ParsedYAML
+        type: default
+      - file: /Users/s140692/Library/Application Support/dicy/config.yaml-ParsedYAML
+        type: default
+    outputs: []
+  - name: ParseOptionsFile
+    command: load
+    phase: execute
+    parameters: []
+    inputs:
+      - file: /Users/s140692/Library/Application Support/dicy/config.yaml
+        type: default
+    outputs:
+      - file: /Users/s140692/Library/Application Support/dicy/config.yaml-ParsedYAML
+        type: default
+  - name: ParseLaTeXMagic
+    command: load
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.tex
+    inputs:
+      - file: 899b_Problem_Set_3.tex
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.tex-ParsedLaTeXMagic
+        type: default
+  - name: AssignJobNames
+    command: load
+    phase: finalize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: FindLogFiles
+    command: build
+    phase: initialize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: LaTeX
+    command: build
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.tex
+    inputs:
+      - file: 899b_Problem_Set_3.tex
+        type: default
+      - file: 899b_Problem_Set_3.fls-ParsedFileListing
+        type: default
+      - file: 899b_Problem_Set_3.log-ParsedLaTeXLog
+        type: default
+      - file: 899b_Problem_Set_3.aux
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/map/fontname/texfonts.map
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmex10.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi12.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi6.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi8.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr12.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr17.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr6.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr8.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmsy8.tfm
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/ifxetex/ifxetex.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/etexcmds.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ifvtex.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/infwarerr.sty
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amscls/amsthm.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/amssymb.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsa.fd
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsb.fd
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsbsy.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsgen.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsmath.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amsopn.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/amsmath/amstext.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/base/article.cls
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/base/inputenc.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/base/size12.clo
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/booktabs/booktabs.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/caption3.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/caption/subcaption.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/doublestroke/dsfont.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/enumitem/enumitem.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/geometry/geometry.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics-def/pdftex.def
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphics.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/graphicx.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/keyval.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/lscape.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/graphics/trig.sty
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+        type: default
+      - file: >-
+          /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/grfext.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/kvoptions.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/oberdiek/pdflscape.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/tex/latex/placeins/placeins.sty
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/web2c/texmf.cnf
+        type: default
+      - file: /usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map
+        type: default
+      - file: /usr/local/texlive/2019/texmf-var/web2c/pdftex/pdflatex.fmt
+        type: default
+      - file: /usr/local/texlive/2019/texmf.cnf
+        type: default
+      - file: choice_probabilities.aux
+        type: default
+      - file: choice_probabilities_observed_choice.aux
+        type: default
+      - file: probit_coefficients.aux
+        type: default
+      - file: fixed_point_norm_evolution.png
+        type: default
+      - file: newton_norm_evolution.png
+        type: default
+      - file: gmm_obj_func.png
+        type: default
+      - file: var_estimates.tex
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmmi10.tfm
+        type: default
+      - file: /usr/local/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmr10.tfm
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.aux
+        type: default
+      - file: 899b_Problem_Set_3.fls
+        type: default
+      - file: 899b_Problem_Set_3.log
+        type: default
+      - file: 899b_Problem_Set_3.pdf
+        type: target
+      - file: choice_probabilities.aux
+        type: default
+      - file: choice_probabilities_observed_choice.aux
+        type: default
+      - file: probit_coefficients.aux
+        type: default
+      - file: 899b_Problem_Set_3.synctex.gz
+        type: target
+  - name: ParseLaTeXAuxilary
+    command: build
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.aux
+    inputs:
+      - file: 899b_Problem_Set_3.aux
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.aux-ParsedLaTeXAuxilary
+        type: default
+  - name: ParseFileListing
+    command: build
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.fls
+    inputs:
+      - file: 899b_Problem_Set_3.fls
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.fls-ParsedFileListing
+        type: default
+  - name: ParseLaTeXLog
+    command: build
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.log
+    inputs:
+      - file: 899b_Problem_Set_3.log
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.log-ParsedLaTeXLog
+        type: default
+  - name: ParseLaTeXAuxilary
+    command: build
+    phase: execute
+    parameters:
+      - choice_probabilities.aux
+    inputs:
+      - file: choice_probabilities.aux
+        type: default
+    outputs:
+      - file: choice_probabilities.aux-ParsedLaTeXAuxilary
+        type: default
+  - name: ParseLaTeXAuxilary
+    command: build
+    phase: execute
+    parameters:
+      - choice_probabilities_observed_choice.aux
+    inputs:
+      - file: choice_probabilities_observed_choice.aux
+        type: default
+    outputs:
+      - file: choice_probabilities_observed_choice.aux-ParsedLaTeXAuxilary
+        type: default
+  - name: ParseLaTeXAuxilary
+    command: build
+    phase: execute
+    parameters:
+      - probit_coefficients.aux
+    inputs:
+      - file: probit_coefficients.aux
+        type: default
+    outputs:
+      - file: probit_coefficients.aux-ParsedLaTeXAuxilary
+        type: default
+  - name: LogProducedTargets
+    command: build
+    phase: finalize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: CheckForMissingBuildRule
+    command: build
+    phase: finalize
+    parameters:
+      - 899b_Problem_Set_3.tex
+    inputs:
+      - file: 899b_Problem_Set_3.tex
+        type: default
+    outputs: []
+  - name: FindLogFiles
+    command: log
+    phase: initialize
+    parameters: []
+    inputs: []
+    outputs: []
+  - name: ReportLogMessages
+    command: log
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.log-ParsedLaTeXLog
+    inputs:
+      - file: 899b_Problem_Set_3.log-ParsedLaTeXLog
+        type: default
+    outputs: []
+  - name: ParseLaTeXLog
+    command: log
+    phase: execute
+    parameters:
+      - 899b_Problem_Set_3.log
+    inputs:
+      - file: 899b_Problem_Set_3.log
+        type: default
+    outputs:
+      - file: 899b_Problem_Set_3.log-ParsedLaTeXLog
+        type: default
+  - name: SaveCache
+    command: save
+    phase: execute
+    parameters: []
+    inputs: []
+    outputs: []

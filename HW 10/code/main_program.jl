@@ -59,3 +59,5 @@ vl_param, Xi_2, λ_gmm = two_step_gmm(dataset, 2, λ_gmm, Xi_1, tol, output_path
 @printf "+--------------------------------------------------------------+\n"
 
 print_stats_func(vl_param, prim.car_char_varlist, "Estimated car characteristics"; get_mean = false)
+estimates = DataFrame(hcat(prim.car_char_varlist, round.(vl_param, digits = 3)), :auto)
+CSV.write(output_path*"var_estimates.csv", estimates)

@@ -1,0 +1,68 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin = 0.6in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{dsfont}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\de}{\mathrm{d}}
+\newcommand{\one}{\mathds{1}}
+
+\title{ECON 899b: Problem Set 3}
+\author{Katherine Kwok\footnote{I collaborated with Anya Tarascina and Claire Kim on this assignment.}}
+\date{December 2021}
+
+\begin{document}
+
+\maketitle
+\noindent \textbf{Overview:} For this assignment, the goal is to use the BLP algorithm to solve an aggregate demand model with quality differentiation. In this case, we use data on the US car industry between 1985 to 2015. \\\\
+\noindent \textbf{Program:} \\\\
+The attached code files ``helper\_functions.jl" contains implements this declares the necessary functions and structs. And then ``main\_program.jl" uses the defined functions to implement the following steps:
+\begin{enumerate}
+	\item Use both (1) contraction mapping and (2) combined contraction mapping and Newton's method to invert the demand function for the paramter value $\lambda_p = 0.6$ and the first year in the sample (1985).
+	\item Find the parameter value $\lambda_p \in [0, 1]$ that minimizes the GMM objective function using 2SLS weighting matrix.
+	\item Implement 2-step GMM with the minimum $\lambda_p$ from the previous step, using BFGS minimization routine.
+\end{enumerate}
+\noindent \textbf{Results:} \\\\
+For the first step, Figures \ref{fixed_point_norm_evolution} and \ref{newton_norm_evolution} shows the evolution of the norm between the log of market share and log of predicted shares. As expected, the method using only contraction mapping takes double the number of iterations compared to the combined method. Since the Newton method makes step adjustments while accounting for the curvature of the function, it converges more quickly.\\\\
+For the second step, Figure \ref{gmm_obj_func} displays the evolution of the GMM objective function value over the paramter grid between 0 and 1. We find that the GMM objective function is minimized around 0.6.\\\\
+Finally, the two-step GMM method estimates the optimal $\lambda_p = 0.6194$. Table \ref{tab1} summarizes the associated variable estimates, including price and other car characteristics.
+
+\begin{figure}[!htbp]
+	\centering
+	\caption{Evolution of Norm for Contraction Mapping Method}
+	\includegraphics[width = 0.8\textwidth]{fixed_point_norm_evolution.png}
+	\label{fixed_point_norm_evolution}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\centering
+	\caption{Evolution of Norm for Combined Contraction Mapping Method and Newton}
+	\includegraphics[width = 0.8\textwidth]{newton_norm_evolution.png}
+	\label{newton_norm_evolution}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\centering
+	\caption{GMM objective function over $\lambda_p \in [0,1]$}
+	\includegraphics[width = 0.8\textwidth]{gmm_obj_func.png}
+	\label{gmm_obj_func}
+\end{figure}
+
+\input{var_estimates}
+
+\end{document}

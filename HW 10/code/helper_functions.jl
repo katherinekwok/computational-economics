@@ -68,7 +68,11 @@ function print_stats_func(dataframe, varlist, title; get_mean = true)
 	@printf "+--------------------------------------------------------------+\n"
 	# print each mean with variable name
 	for ind in 1:size(stats, 1)
-		@printf " mean %s = %.3f \n" stats[ind, 1] stats[ind, 2]
+		if get_mean == true
+			@printf " mean %s = %.3f \n" stats[ind, 1] stats[ind, 2]
+		else
+			@printf " %s = %.3f \n" stats[ind, 1] stats[ind, 2]
+		end
 	end
 	@printf "+--------------------------------------------------------------+\n"
 end
