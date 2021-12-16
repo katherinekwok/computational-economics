@@ -25,9 +25,7 @@ decl vY; /* Observed choices Nx1 */
 decl vSid; /* Observed state IDs Nx1 */
 /* State space indices */
 enum{iI,iC,iP}; /* Columns identifiers for each state variable */
-println(iI);
-println(iC);
-println(iP);
+println(iI, iC, iP);
 /* Parameter names */
 enum{ilambda}; /* Row identifiers for parameter */
 
