@@ -156,6 +156,7 @@ function pol_func_iter(prim, dataset; tol = 1e-9)
     @unpack F_0, F_1, S = dataset
 
     P_old = fill(1/2, size(S, 1)) # initialize probability vector
+    V_bar = zeros(size(S, 1))
     iter = 0
     norm = 100
 
@@ -178,7 +179,7 @@ function pol_func_iter(prim, dataset; tol = 1e-9)
         iter += 1
     end
 
-    EV, P_old, F_vec_old
+    V_bar, P_old, F_vec_old
 end
 
 # get_P_hat: This function gets the P hat vector using the simulated data

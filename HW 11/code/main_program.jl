@@ -27,7 +27,7 @@ dataset = process_data(data_path, prim)
 # (1) Solve the expected value function using implicit equation
 # ---------------------------------------------------------------------------- #
 
-EV1 = val_func_iter(prim, dataset)
+EV1, P1, F_vec = pol_func_iter(prim, dataset) # policy function iteration
 
 # ---------------------------------------------------------------------------- #
 # (2) Solve for expected value function using CCP mapping
@@ -36,7 +36,11 @@ EV1 = val_func_iter(prim, dataset)
 P_hat = get_P_hat(prim, dataset)             # use CCP on P hat (from simulated data)
 EV2, P2 = ccp_mapping(P_hat, prim, dataset)
 
-EV3, P3, F_vec = pol_func_iter(prim, dataset) # policy function iteration
+
+# output results
+output = DataFrame(hcat(dataset.S, round.(EV1, digits = 2), round.(EV2, digits = 2)), :auto)
+rename!(output,[:I,:C, :P, :pol_func_iter, :ccp_sim_data])
+CSV.write(output_path*"value_functions.csv", output)
 
 # ---------------------------------------------------------------------------- #
 # (3) Log-likelihood
