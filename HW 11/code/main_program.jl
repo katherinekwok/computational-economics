@@ -1,5 +1,5 @@
 # Author: Katherine Kwok
-# Date: December 15, 2021
+# Date: December 21, 2021
 
 # This file contains the code for Problem Set 4 (for JF's portion) a.k.a.
 # Problem Set 11 overall. The main program implements a dynamic model of
@@ -21,22 +21,33 @@ output_path = root_path * "/output/"
 # ---------------------------------------------------------------------------- #
 
 prim = Primitives()
-
-sim_data = Array(DataFrame(load(data_path*prim.sim_data_file)))[:, 2:end]   
-S = Array(DataFrame(load(data_path*prim.state_space_file)))[:, 2:end]
-F_0 = Array(DataFrame(load(data_path*prim.trans_a0_file)))[:, 2:end]
-F_1 = Array(DataFrame(load(data_path*prim.trans_a1_file)))[:, 2:end]
+dataset = process_data(data_path, prim)
 
 # ---------------------------------------------------------------------------- #
 # (1) Solve the expected value function using implicit equation
 # ---------------------------------------------------------------------------- #
 
+EV1 = val_func_iter(prim, dataset)
 
 # ---------------------------------------------------------------------------- #
 # (2) Solve for expected value function using CCP mapping
 # ---------------------------------------------------------------------------- #
 
+P_hat = get_P_hat(prim, dataset)             # use CCP on P hat (from simulated data)
+EV2, P2 = ccp_mapping(P_hat, prim, dataset)
+
+EV3, P3, F_vec = pol_func_iter(prim, dataset) # policy function iteration
 
 # ---------------------------------------------------------------------------- #
-# (3) Calculate MLE of α using nested fixed point algorithm
+# (3) Log-likelihood
 # ---------------------------------------------------------------------------- #
+
+bfgs = @time optimize(λ -> -log_likelihood(λ, prim, dataset), [prim.λ], BFGS(); inplace = false)
+λ_bfgs = Optim.minimizer(bfgs)
+
+# ---------------------------------------------------------------------------- #
+# (4) Calculate MLE of α using nested fixed point algorithm
+# ---------------------------------------------------------------------------- #
+
+nested = @time optimize(λ -> -log_likelihood_nested(λ, prim, dataset), [prim.λ], BFGS(); inplace = false)
+λ_nested = Optim.minimizer(nested)

@@ -20,14 +20,13 @@ decl gamma=1/2;	 // what is this used for?
 decl mF1,mF0,mS;
 
 /* Simulated choices and states */
-decl vPhat; /* Estimted choice-probalities Sx1 */
-decl vY; /* Observed choices Nx1 */
-decl vSid; /* Observed state IDs Nx1 */
+decl vPhat;     /* Estimated choice-probalities Sx1 */
+decl vY;        /* Observed choices Nx1 */
+decl vSid; 		/* Observed state IDs Nx1 */
 /* State space indices */
 enum{iI,iC,iP}; /* Columns identifiers for each state variable */
-println(iI, iC, iP);
 /* Parameter names */
-enum{ilambda}; /* Row identifiers for parameter */
+enum{ilambda};  /* Row identifiers for parameter */
 
 /**********************************************************************************************/
 /* Choice-specific value-function */
@@ -74,6 +73,7 @@ lfunc_ccp(const vP, const adFunc, const avScore, const amHessian)
   ccp(&vEV,&vCCP,vPhat);
   vCCP=vCCP[vSid];
   decl vL=vCCP.*vY+(1-vCCP).*(1-vY);
+  println(vL[0:10][]);
   decl LLF;
   LLF=double(sumc(log(vL)));
   adFunc[0]=LLF;
@@ -104,6 +104,8 @@ lfunc_nfxp(const vP, const adFunc, const avScore, const amHessian)
 /**********************************************************************************************/
 
 
+
+// main algorithm
 main()
 {
    /***************************************/
@@ -125,11 +127,15 @@ main()
   println("State space: ","%c",{"I","C","P"},mS);
   savemat("PS4_state_space.csv",range(0,S-1)'~mS,{"id","I","C","P"});
   println("State points: ",S);
+   /***************************************/
 
+  // per period payoff function
   decl vU1=alpha*mS[][iC]-mS[][iP];
   decl vU0=alpha*mS[][iC].*(mS[][iI].>0)+lambda*(mS[][iC].>0).*(mS[][iI].==0);
   println("%c",{"I","C","P","U1","U0"},mS~vU1~vU0);
-
+  
+   /***************************************/
+   // create transitions 
   decl i,j;
   mF0=new matrix[S][S];
   mF1=new matrix[S][S];
@@ -147,11 +153,11 @@ main()
   savemat("PS4_transition_a1.csv",range(0,S-1)'~mF1,{"id"}~aStateID);
    /***************************************/
 
-  /* CCP iteration */
-  decl vP=constant(1/2,S,1),vP0,vEV;
-  decl it=0;
-  decl eps=10^(-10);
-  do{
+  // CCP iteration 
+  decl vP=constant(1/2,S,1),vP0,vEV; // initialize values
+  decl it=0;						 // iteration counter
+  decl eps=10^(-10);				 // tolerance value
+  do{								 // CCP iteration
     vP0=vP;
     ccp(&vEV,&vP,vP0);
     it+=1;
@@ -208,23 +214,25 @@ main()
   println("Prob of purchasing on sale:",meanc(selectifr(vY,mSim[][iP].==ps))[0]);
 
   /* Inverted value function */
+  println(vPhat);
   decl vP2,vEV2;
   ccp(&vEV2,&vP2,vPhat);
   println("%c",{"ID & ","I & ","C & ","P & ","$P(x)^\\ast$ & ","$\\hat{P}(s)$ & ","$EV$ & ","\\hat{EV}$ \\\ "},
 	  "%cf",{"%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g & ","%9.3g \\\ "},range(1,S)'~mS~vP~vPhat~vEV~vEV2);
-  
 
   /* Pseudo-likelihood */
   decl L,vParam=new matrix[1][1];
   vParam[ilambda]=lambda;
   decl vParam_true=vParam;
 
+  lfunc_ccp(&vParam, &L, 0, 1);
+
 
   /* MLE with estimated CCP */
-  MaxControl(1000,1);
-  MaxBFGS(lfunc_ccp,&vParam,&L,0,1);
-  decl vParam_est_ccp=vParam;
-   
+  //MaxControl(1000,1);
+  //MaxBFGS(lfunc_ccp,&vParam,&L,0,1);
+  //decl vParam_est_ccp=vParam;
+
   /* MLE with true CCP */
   vPhat=vP;
   MaxControl(1000,1);
@@ -243,6 +251,7 @@ main()
 
 
   /***************************************/
+  // plot lambda value
   decl vGrid_lambda=range(-10,0,1/10);
   decl vGrid_llf=<>;  
   for(i=0;i<columns(vGrid_lambda);i++)
@@ -254,6 +263,9 @@ main()
   DrawXMatrix(0,vGrid_llf,"llf",vGrid_lambda,"lambda",0,5);  
   ShowDrawWindow();
   SaveDrawWindow("grid_search_lambda.pdf");
+   /***************************************/
+  
+   
   
 
 }
